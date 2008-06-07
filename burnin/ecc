@@ -1,0 +1,66 @@
+#!/bin/ash
+
+. /etc/library.sh
+
+# read in our hardware configs
+if [ -e /var/run/breakin.dat ]
+then
+	. /var/run/breakin.dat
+fi
+
+if [ ! -d /proc/mc ]
+then
+	echo "MSG: No support for ECC checking on this system"
+	exit 255
+fi
+
+# now we look at each file in /proc/mc
+
+
+COUNT=0
+FOUND_ERROR=0
+
+while [ "${COUNT}" -lt "30" ];
+do
+
+	ERROR_STRING=""
+	for i in /proc/mc/*
+	do
+		MEMCTRL=`basename $i`
+	
+		grep "^[0-9].[0-9]" $i > /tmp/ecc.${MEMCTRL}.dat 2> /dev/null
+		while read line
+		do
+			DIMM_PATH=`echo $line | cut -d":" -f1`
+			DIMM_NAME=`echo $line | cut -d":" -f2`
+			DIMM_TYPE=`echo $line | cut -d":" -f3`
+			DIMM_ERRORS=`echo $line | cut -d":" -f4`
+
+			if [ "${DIMM_NAME}" = "" ]
+			then
+				MC=`basename ${i}`
+				DIMM_NAME="${MC}.${DIMM_PATH}"
+			fi
+			if [ "${DIMM_ERRORS}" -gt 0 ]
+			then
+				FOUND_ERROR=1
+				ERROR_STRING="${DIMM_NAME}:${DIMM_ERRORS}  ${ERROR_STRING}"
+			fi
+	
+		done < /tmp/ecc.${MEMCTRL}.dat
+	done
+
+	if [ "${ERROR_STRING}" != "" ]
+	then
+		echo ${ERROR_STRING}
+	fi
+
+	COUNT=`expr ${COUNT} + 1`
+	sleep 1
+done
+
+if [ "${FOUND_ERROR}"  = "0" ]
+then
+	echo "MSG: No ECC errors found"
+fi
+exit ${FOUND_ERROR}

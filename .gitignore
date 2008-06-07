@@ -1,0 +1,6 @@
+*.so
+*.[oa]
+*.tar.bz2
+*.tar.gz
+*.tgz
+*.tbz2

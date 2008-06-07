@@ -1,0 +1,37 @@
+#!/bin/ash
+
+. /etc/library.sh
+
+# read in our hardware configs
+if [ -e /var/run/breakin.dat ]
+then
+	. /var/run/breakin.dat
+fi
+
+FOUND_ERROR=0
+
+# if we don't have any disks - this should never run again
+if [ "${DISK_QTY}" -le "0" ]
+then
+	echo "MSG: No disk devices found"
+	exit 255
+fi
+
+I=0
+while [ "${I}" -lt "${DISK_QTY}" ];
+do
+	DRIVE_NAME=`eval echo \\\$DISK_${I}_NAME`
+
+	badblocks -v /dev/${DRIVE_NAME} > /tmp/badblocks.${DRIVE_NAME}.log 2>&1
+	if [ "$?" != 0 ]
+	then
+		echo "Disk drive check failed on device ${DRIVE_NAME}"
+		FOUND_ERROR=1
+	fi
+	I=`expr ${I} + 1`
+done
+
+if [ "${FOUND_ERROR}" = "0" ]
+then
+	echo "MSG: No disk errors found"
+fi
