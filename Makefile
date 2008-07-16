@@ -2,14 +2,14 @@ CC=gcc
 CFLAGS= -DTHREADING
 LDFLAGS= -DTHREADING 
 LIBS=-lpanel -lncurses `curl-config --libs`
-VERSION=1.0
+VERSION:=0.0
 
 OBJS=breakin.o util.o dmidecode.o bench_stream.o bench_disk.o
 
 all: breakin hpl_calc_n cryptpasswd
 
 %.o: %.c
-	$(CC) -DPRODUCT_VERSION=${VERSION} ${CFLAGS} -c $<
+	$(CC) -DPRODUCT_VERSION=\"${VERSION}\" ${CFLAGS} -c $<
 
 breakin: ${OBJS}
 	${CC} ${LDFLAGS} -pthread $^ -o $@  ${LIBS}

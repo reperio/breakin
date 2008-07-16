@@ -737,7 +737,7 @@ int draw_stat_window(WINDOW *win) {
 	memset(label, sizeof(label), '\0');
 	memset(run_time, sizeof(run_time), '\0');
 
-	mvwprintw(win, 0, 1, "%s Version: %.2f", PRODUCT_NAME, PRODUCT_VERSION);
+	mvwprintw(win, 0, 1, "%s Version: %s", PRODUCT_NAME, PRODUCT_VERSION);
 
 	mvwhline(win, 1, 0, 0, COLS); 
 
