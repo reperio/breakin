@@ -1215,7 +1215,7 @@ int find_burnin_tests() {
 		}
 
 		if (disable_test) {
-			break;
+			continue;
 		}
 
 		if (dir_entry->d_name[0] != '.') {
