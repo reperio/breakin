@@ -1,0 +1,52 @@
+#!/bin/ash
+
+. /etc/library.sh
+
+# read in our hardware configs
+if [ -e /var/run/breakin.dat ]
+then
+	. /var/run/breakin.dat
+fi
+
+if [ ! -d /sys/devices/system/edac/mc/mc0 ]
+then
+	echo "MSG: No support for ECC checking on this system"
+	exit 255
+fi
+
+# now we look at each file in mc
+
+
+COUNT=0
+FOUND_ERROR=0
+
+ERROR_STRING=""
+for i in /sys/devices/system/edac/mc/mc?
+do
+    CE_COUNT=`cat ${i}/ce_count`
+    UE_COUNT=`cat ${i}/ue_count`
+    ERR_COUNT=`expr ${CE_COUNT} + ${UE_COUNT}`
+    
+    if [ "${ERR_COUNT}" -gt 0 ]
+    then
+        FOUND_ERROR=1
+        for j in ${i}/csrow?
+        do
+            CE_COUNT=`cat ${j}/ce_count`
+	            UE_COUNT=`cat ${j}/ue_count`
+            ERR_COUNT=`expr ${CE_COUNT} + ${UE_COUNT}`
+                   MC=`basename ${i}`
+                   CSROW=`basename ${j}`
+            ERROR_STRING="${MC}:${CSROW} error counter at ${ERR_COUNT}"
+            echo ${ERROR_STRING}
+        done
+    fi
+done
+
+sleep 10
+
+if [ "${FOUND_ERROR}"  = "0" ]
+then
+	echo "MSG: No ECC errors found"
+fi
+exit ${FOUND_ERROR}

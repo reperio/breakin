@@ -1,0 +1,26 @@
+#!/bin/ash
+# read /dev/mcelog every 5 seconds because that's the kernel interval
+
+. /etc/library.sh
+
+FOUND_ERROR=0
+
+OUTPUT=`/usr/bin/mcelog --dmi`
+RETVAL=$?
+if [ $RETVAL = 1 ]
+then
+
+	msg "mcelog couldn't access mce, mem, or dmi data"
+	exit 255
+
+elif [ $RETVAL = 0 ]
+then
+	if [ -n "${OUTPUT}" ]
+	then
+		FOUND_ERROR=1
+		echo "${OUTPUT}"
+	fi
+
+fi
+sleep 5
+exit $FOUND_ERROR 

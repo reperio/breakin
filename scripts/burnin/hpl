@@ -1,0 +1,101 @@
+#!/bin/ash
+
+. /etc/library.sh
+
+# read in our hardware configs
+if [ -e /var/run/breakin.dat ]
+then
+	. /var/run/breakin.dat
+fi
+
+BINARY="xhpl.amd"
+RUNNING_JOB=""
+
+echo "${CPU_MODEL}" | grep "Intel" > /dev/null 2>&1
+if [ "$?" = "0" ]
+then
+	BINARY="xhpl.intel"
+fi
+
+# the top template
+cat /usr/local/breakin/hpl/HPL-top.txt > /usr/local/breakin/hpl/HPL.dat
+
+# we first figure out our N based on the ammount of RAM we have
+N_SIZE=`/usr/local/bin/hpl_calc_n ${MEM_TOTAL}`
+#if [ ${BINARY} = "xhpl.amd" ]
+#then
+#	N_SIZE=$(($((N_SIZE / 3)) * 2))
+#fi
+
+echo "${N_SIZE}         Ns" >> /usr/local/breakin/hpl/HPL.dat
+
+cat /usr/local/breakin/hpl/HPL-middle.txt >> /usr/local/breakin/hpl/HPL.dat
+
+if [ "${CPU_QTY}" = "1" ]
+then
+	echo "1     Ps" >> /usr/local/breakin/hpl/HPL.dat	
+	echo "1     Qs" >> /usr/local/breakin/hpl/HPL.dat	
+
+elif [ "${CPU_QTY}" = "2" ]
+then
+
+	echo "2     Ps" >> /usr/local/breakin/hpl/HPL.dat	
+	echo "1     Qs" >> /usr/local/breakin/hpl/HPL.dat	
+
+elif [ "${CPU_QTY}" = "4" ]
+then
+
+	echo "2     Ps" >> /usr/local/breakin/hpl/HPL.dat	
+	echo "2     Qs" >> /usr/local/breakin/hpl/HPL.dat	
+
+elif [ "${CPU_QTY}" = "8" ]
+then
+
+	echo "4     Ps" >> /usr/local/breakin/hpl/HPL.dat	
+	echo "2     Qs" >> /usr/local/breakin/hpl/HPL.dat	
+
+elif [ "${CPU_QTY}" = "16" ]
+then
+
+	echo "4     Ps" >> /usr/local/breakin/hpl/HPL.dat	
+	echo "4     Qs" >> /usr/local/breakin/hpl/HPL.dat	
+elif [ "${CPU_QTY}" = "32" ]
+then
+
+	echo "8     Ps" >> /usr/local/breakin/hpl/HPL.dat	
+	echo "4     Qs" >> /usr/local/breakin/hpl/HPL.dat	
+fi
+cat /usr/local/breakin/hpl/HPL-bottom.txt >> /usr/local/breakin/hpl/HPL.dat
+
+
+OMP_NUM_THREADS=1
+GOTO_NUM_THREADS=1
+export OMP_NUM_THREADS GOTO_NUM_THREADS
+
+LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64
+export LD_LIBRARY_PATH
+
+cd /usr/local/breakin/hpl
+if [ -x /usr/local/bin/${BINARY} ]
+then
+	/usr/local/bootimage-mpich/bin/mpirun -np ${CPU_QTY} /usr/local/bin/${BINARY} > /tmp/hpl.log 2>&1
+else
+	echo "Binary for this host CPU variant is not available."
+fi
+
+if [ "$?" -ne 0 ]
+then
+	cat /tmp/hpl.log > /errors/hpl.log
+	echo "test failed possible memory or cpu errors" 
+	exit 1
+else
+	GFLOPS=`grep ^WR /tmp/hpl.log | tail -1 | awk '{print $7}'`
+	echo "MSG: Passed (${GFLOPS} GFLOPS)" 
+	exit 0
+fi
+done
+
+sleep 1
+killall ${BINARY} > /dev/null 2>&1
+sleep 5
+
