@@ -1185,6 +1185,8 @@ int find_burnin_tests() {
 	struct dirent *dir_entry, *de;
 	char filename[BUFSIZ];
 	int burnin_count = 0;
+	char *strptr, *str, *token;
+	int j;
 
 	dir_entry = (struct dirent *) malloc( 
 		offsetof(struct dirent, d_name) + 256);
@@ -1194,7 +1196,27 @@ int find_burnin_tests() {
 		return 0;
 	}
 
+
 	while ((readdir_r(burnin_dir, dir_entry, &de) == 0) && de != NULL) {
+
+		int disable_test = 0;
+
+		for (j = 1, str = breakin_disable; ;j++, str = NULL) {
+			token = strtok_r(str, ",", &strptr);
+			if (token == NULL) {
+				break;
+			}
+
+			/* we got ourselves a match disable this test */
+			if (strcmp(token, dir_entry->d_name) == 0) {
+				disable_test = 1;
+				break;
+			}
+		}
+
+		if (disable_test) {
+			break;
+		}
 
 		if (dir_entry->d_name[0] != '.') {
 
@@ -1463,11 +1485,12 @@ int main(int argc, char **argv) {
 			{ "ssh", 0, 0, 's' },
 			{ "baud", 1, 0, 'r' },
 			{ "serialdev", 1, 0, 'd' },
+			{ "disable_test", 1, 0, 't' },
 			{ 0, 0, 0, 0 }
 		};
 
 
-		c = getopt_long(argc, argv, "u:i:bsd:r:", long_options, &option_index);
+		c = getopt_long(argc, argv, "u:i:bsd:r:t:", long_options, &option_index);
 		if (c == -1) {
 			break;
 		}
@@ -1501,6 +1524,10 @@ int main(int argc, char **argv) {
 				serial_enabled = 1;
 				break;
 
+			case 't':
+				snprintf(breakin_disable, sizeof(breakin_disable), "%s", optarg);
+				break;
+
 			default:
 				printf("%s\n", PRODUCT_NAME);
 				printf("\nValid Options:\n");
@@ -1509,6 +1536,7 @@ int main(int argc, char **argv) {
 				printf("  -b, --nobenchmarks               Skip the benchmark phase\n");
 				printf("  -r, --baud                       Baud rate for serial log\n");
 				printf("  -d, --serialdev                  Serial port device\n");
+				printf("  -t, --disable_test=test1,test2   Comma seperated lists of tests to not run\n");
 				printf("\n");
 				exit(1);
 		}
@@ -1577,6 +1605,12 @@ int main(int argc, char **argv) {
 		ts.tv_nsec = SLEEP_DELAY;
 		nanosleep(&ts, NULL);
 	}
+
+	if (strcmp("", breakin_disable) != 0) {
+		sprintf(buf, "Was asked to disable the following tests: %s\n", breakin_disable);
+		log_message(buf);
+	}
+
 
 
 	/* hardware setup is finished ... now it's time to try to start logging */

@@ -27,6 +27,9 @@ int serial_enabled = 0;
 int serial_baud = 115200;
 char serial_dev[1024] = "";
 
+/* what tests are we disabling */
+char breakin_disable[1024] = "";
+
 struct nic_data_t {
 	char		name[16];
 	char		macaddr[32];
