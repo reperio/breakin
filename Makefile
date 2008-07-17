@@ -3,6 +3,7 @@ CFLAGS= -DTHREADING
 LDFLAGS= -DTHREADING 
 LIBS=-lpanel -lncurses `curl-config --libs`
 VERSION:=0.0
+INSTALLPREFIX=SET_ME
 
 OBJS=breakin.o util.o dmidecode.o bench_stream.o bench_disk.o
 
@@ -25,3 +26,15 @@ cryptpasswd: cryptpasswd.o
 
 clean:
 	rm -f *.o breakin breakin.static hpl_calc_n cryptpasswd
+
+install: breakin hpl_calc_n cryptpasswd
+
+	mkdir -p ${INSTALLPREFIX}/usr/local/bin
+	cp -p breakin ${INSTALLPREFIX}/usr/local/bin/breakin
+	cp -p hpl_calc_n ${INSTALLPREFIX}/usr/local/bin/hpl_calc_n
+	cp -p cryptpasswd ${INSTALLPREFIX}/usr/local/bin/cryptpasswd
+
+	mkdir -p ${INSTALLPREFIX}/etc/breakin/tests
+
+	cp -av scripts/* ${INSTALLPREFIX}/etc/breakin
+

@@ -46,7 +46,7 @@
 #define SENSOR_PATH "/sys/bus/i2c/devices"
 #define STAT_FILE "/var/run/breakin.dat"
 #define BLOCK_DEV_PATH "/sys/block"
-#define BURNIN_SCRIPT_PATH "/etc/breakin/burnin"
+#define BURNIN_SCRIPT_PATH "/etc/breakin/tests"
 
 #define LOG_DEV "/var/logdev"
 #define LOG_FILE "/var/log/breakin.log"
