@@ -1607,7 +1607,7 @@ int main(int argc, char **argv) {
 	}
 
 	if (strcmp("", breakin_disable) != 0) {
-		sprintf(buf, "Was asked to disable the following tests: %s\n", breakin_disable);
+		sprintf(buf, "Was asked to disable the following tests: %s", breakin_disable);
 		log_message(buf);
 	}
 
