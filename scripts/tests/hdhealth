@@ -24,7 +24,7 @@ while [ "${I}" -lt "${DISK_QTY}" ];
 do
 	DRIVE_NAME=`eval echo \\\$DISK_${I}_NAME`
 
-	TEMPS="${DRIVE_NAME}: `/usr/bin/hddtemp -n -uC /dev/${DRIVE_NAME}`C ${TEMPS}"
+	TEMPS="${DRIVE_NAME}: `hddtemp -n -uC /dev/${DRIVE_NAME}`C ${TEMPS}"
 
 	/usr/bin/smartctl -q silent -a /dev/${DRIVE_NAME} > /dev/null 2>&1
 	if [ "$?" != 0 ]
