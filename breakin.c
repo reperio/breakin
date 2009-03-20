@@ -18,6 +18,7 @@
 #include <getopt.h>
 #include <termios.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -40,10 +41,10 @@
 
 #define LOGDEV_DELAY 30		/* how long between output to the logdevice / serial port*/
 
-#define STAT_MIN_ROWS 9
+#define STAT_MIN_ROWS 10
 #define ERR_LOG_FILE "/var/log/breakin.error.log"
 #define PRODUCT_NAME "Advanced Clustering Breakin"
-#define SENSOR_PATH "/sys/bus/i2c/devices"
+#define SENSOR_PATH "/sys/class/hwmon"
 #define STAT_FILE "/var/run/breakin.dat"
 #define BLOCK_DEV_PATH "/sys/block"
 #define BURNIN_SCRIPT_PATH "/etc/breakin/tests"
@@ -476,6 +477,75 @@ double get_mem_usage() {
 		(mem_info.swap_total - mem_info.swap_free) / mem_info.swap_total) * 100;
 }
 
+int get_ipmi_sensors() {
+	FILE *fp;
+	char buf[BUFSIZ];
+	char label[20]; 
+	int value = 0;
+	char *chunk, *string;
+
+	fp = fopen("/tmp/ipmi_temp.log", "r");
+	if (fp != NULL) {
+		while (fgets(buf, sizeof(buf), fp) != NULL) {
+			int i  = 0, found_label = 0, found_value = 0;
+			string = buf;	
+			while (string) {
+				chunk = strsep(&string, "|");
+				/* label */
+				if (i == 0) {
+					snprintf(label, sizeof(label), "IPMI %s", trim(chunk));
+					found_label = 1;
+				}
+				/* value */
+				else if (i == 1) {
+					sscanf(chunk, "%d %*s", &value);	
+					found_value = 1;
+				}
+				i ++;
+			}	
+			if (found_label && found_value) {
+				if (temp_qty < MAX_TEMPS) {
+					snprintf(temp_data[temp_qty].name, sizeof(temp_data[temp_qty].name), "%s", label);
+					temp_data[temp_qty].value = value;
+					temp_qty ++;
+				}
+			}
+		}
+		fclose(fp);
+	}
+
+	fp = fopen("/tmp/ipmi_fan.log", "r");
+	if (fp != NULL) {
+		while (fgets(buf, sizeof(buf), fp) != NULL) {
+			int i  = 0, found_label = 0, found_value = 0;
+			string = buf;	
+			while (string) {
+				chunk = strsep(&string, "|");
+				/* label */
+				if (i == 0) {
+					snprintf(label, sizeof(label), "IPMI %s", trim(chunk));
+					found_label = 1;
+				}
+				/* value */
+				else if (i == 1) {
+					sscanf(chunk, "%d %*s", &value);	
+					found_value = 1;
+				}
+				i ++;
+			}	
+			if (found_label && found_value) {
+				if (temp_qty < MAX_TEMPS) {
+					snprintf(fan_data[fan_qty].name, sizeof(fan_data[fan_qty].name), "%s", label);
+					fan_data[fan_qty].value = value;
+					fan_qty ++;
+				}
+			}
+		}
+		fclose(fp);
+	}
+	return 0;
+}
+
 /***********************************************************
  *  search through /proc/bus/i2c/devices/ for temp_input files
  *  these are temperature sensors
@@ -485,9 +555,13 @@ int get_lm_sensors() {
 	FILE *fp;
 	struct dirent *dir_entry, *dev_entry, *de, *de2;
 	char dirname[BUFSIZ], filename[BUFSIZ], buf[BUFSIZ], *ptr;
-	int tempcount = 0, i;
+	int tempcount = 0, fancount = 0, i;
 	
 	memset(buf, '\0', sizeof(buf));
+
+	/* every iteration we reset are qty of sensors back to 0 */
+	fan_qty = 0;
+	temp_qty = 0;
 
 	sensor_dir = opendir(SENSOR_PATH);
 	if(sensor_dir == NULL) {
@@ -505,12 +579,15 @@ int get_lm_sensors() {
 
 		/* if it's a directory and dosen't start w/ a . */
 		if (dir_entry->d_type = 'D' && *dir_entry->d_name != '.') {
-			sprintf(dirname, "%s/%s", SENSOR_PATH, 
+			sprintf(dirname, "%s/%s/device", SENSOR_PATH, 
 				dir_entry->d_name);
 			dev_dir = opendir(dirname);
 
 			while ((readdir_r(dev_dir, dev_entry, &de2) == 0) && 
 				de2 != NULL) {
+				int found_temp = 0;
+				int found_fan = 0;
+
 				/* we only want files with the name 
 				   temp[0-9]_input */
 
@@ -526,16 +603,105 @@ int get_lm_sensors() {
 						fp = fopen(filename, "r");
 						if (fp != NULL) {
 							if (fgets(buf, sizeof(buf), fp) != NULL) {
-								temp_data[tempcount] = atoi(trim(buf));
-								temp_data[tempcount] = 
-									temp_data[tempcount] / 1000;
+								temp_data[tempcount].value = atoi(trim(buf));
+								temp_data[tempcount].value = 
+									temp_data[tempcount].value / 1000;
+								found_temp = 1;
+							}
+							fclose(fp);
+						}
+						// core temp is different... argh...
+						if (found_temp) {
+              						char buf[1024];
+							int len;
+							double max;
 
-								tempcount ++;
+							sprintf(filename, "%s/driver", dirname);
+
+							if ((len = readlink(filename, buf, sizeof(buf)-1)) != -1);
+                  						buf[len] = '\0';
+
+							if (strcmp(basename(buf), "coretemp") == 0) {
+								ptr = strtok(dev_entry->d_name, "_");
+								if (ptr != NULL) {
+									sprintf(filename, "%s/%s_max", dirname, ptr);
+									fp = fopen(filename, "r");
+									if (fp != NULL) {
+										if (fgets(buf, sizeof(buf), fp) != NULL) {
+											max = atoi(trim(buf));
+											max = max / 1000;
+											temp_data[tempcount].value = 
+												(max / 100) * temp_data[tempcount].value;
+										}
+										fclose(fp);
+									}
+								}
 							}
 						}
-						fclose(fp);
 					}
 				}
+				
+				/* it's a fan entry */
+				else if (strncmp(dev_entry->d_name, "fan", 3) == 0) {
+					ptr = strstr(dev_entry->d_name, "_input");
+					if (ptr != NULL) {
+						sprintf(filename, "%s/%s", dirname, dev_entry->d_name);
+						fp = fopen(filename, "r");
+						if (fp != NULL) {
+							if (fgets(buf, sizeof(buf), fp) != NULL) {
+								fan_data[fancount].value = atoi(trim(buf));
+								found_fan = 1;
+							}
+							fclose(fp);
+						}
+					}
+				}
+
+				/* is there a matching XXXXXX_label? */
+				if (found_temp || found_fan) {
+					ptr = strtok(dev_entry->d_name, "_");
+					if (ptr != NULL) {
+						sprintf(filename, "%s/%s_label", dirname, ptr);
+						fp = fopen(filename, "r");
+						if (fp != NULL) {
+							if (fgets(buf, sizeof(buf), fp) != NULL) {
+								if (found_temp) {	
+									snprintf(temp_data[tempcount].name, sizeof(temp_data[tempcount].name), "%s", trim(buf));
+								}
+								else if (found_fan) {	
+									snprintf(fan_data[fancount].name, sizeof(fan_data[fancount].name), "%s", trim(buf));
+								}
+							}
+							fclose(fp);
+						}
+						else {
+							if (found_temp) {
+								sprintf(temp_data[tempcount].name, "%s", ptr);
+							}
+							else if (found_fan) {
+								sprintf(fan_data[fancount].name, "%s", ptr);
+							}
+						}
+					}
+					else {
+						if (found_temp) {
+							sprintf(temp_data[tempcount].name, "");
+						}
+						else if (found_fan) {
+							sprintf(fan_data[fancount].name, "");
+						}
+					}
+					
+				}
+
+
+				if (found_temp) {
+					tempcount ++;
+				}
+				else if (found_fan) {
+					fancount ++;
+				}
+
 			}
 			closedir(dev_dir);
 		}
@@ -546,6 +712,7 @@ int get_lm_sensors() {
 
 	closedir(sensor_dir);
 	temp_qty = tempcount;
+	fan_qty = fancount;
 
 }
 
@@ -731,8 +898,10 @@ int draw_stat_window(WINDOW *win) {
 	char label[BUFSIZ];
 	char run_time[BUFSIZ];
 	int pos = 0;
-	int i = 0;
+	int i = 0, j =0;
 	int burnin_start = 0;
+	int temp_displayed = 0, fan_displayed = 0;
+	int linepos = 4;
 
 	memset(label, sizeof(label), '\0');
 	memset(run_time, sizeof(run_time), '\0');
@@ -744,31 +913,94 @@ int draw_stat_window(WINDOW *win) {
 	draw_graph(win, 2, "CPU usage", cpu_usage[0].percent);
 	draw_graph(win, 3, "Mem Usage", mem_info.mem_percent);
         mvwprintw(win, 4, 1, "Temps       ");
-	for (i = 0; i < temp_qty; i ++) {
-		if (temp_data[i] > 0) {
 
-			if (temp_data[i] >= TEMP_RED) {
+	for (i = 0; i < temp_qty; i ++) {
+		if (temp_data[i].value > 0) {
+			char string[22];
+			char label[15];
+			
+			if (strlen(temp_data[i].name) > 14) {
+				for (j = 0; j < 14; j++) {
+					label[j] = temp_data[i].name[j];
+				}
+			}
+			else {
+				sprintf(label, "%s", temp_data[i].name);
+			}
+
+			snprintf(string, sizeof(string), "%s: %.1fC", label, temp_data[i].value);
+
+			for (j = strlen(string); j < 22; j ++) {
+				string[j] = ' ';
+			}
+			string[22] = '\0';
+
+			if (temp_data[i].value >= TEMP_RED) {
 				wattron(win,COLOR_PAIR(1));
-				wprintw(win, "%.1fC  ", temp_data[i]);
+				wprintw(win, "%s ", string);
 				wattroff(win,COLOR_PAIR(1));
 			}
-			else if (temp_data[i] >= TEMP_YELLOW) {
+			else if (temp_data[i].value >= TEMP_YELLOW) {
 				wattron(win,COLOR_PAIR(3));
-				wprintw(win, "%.1fC  ", temp_data[i]);
+				wprintw(win, "%s ", string);
 				wattroff(win,COLOR_PAIR(3));
 			}
 			else {
-				wprintw(win, "%.1fC  ", temp_data[i]);
+				wprintw(win, "%s ", string);
 			}
+			temp_displayed ++;
 
+			if (temp_displayed % 3 == 0) {
+				linepos ++;
+        			mvwprintw(win, linepos, 1, "            ");
+			}
 		}
 	}
 	if (temp_qty == 0) {
 		wprintw(win, "Not supported");
 	}
-	mvwhline(win, 5, 0, 0, COLS); 
 
-	burnin_start = 6;
+	linepos ++;
+        mvwprintw(win, linepos, 1, "Fans        ", fan_qty);
+
+	for (i = 0; i < fan_qty; i ++) {
+		if (fan_data[i].value > 0) {
+			char string[22];
+			char label[10];
+	
+			if (strlen(fan_data[i].name) > 10) {
+				for (j = 0; j < 10; j++) {
+					label[j] = fan_data[i].name[j];
+				}
+			}
+			else {
+				sprintf(label, "%s", fan_data[i].name);
+			}
+	
+			snprintf(string, sizeof(string), "%s: %d RPM", label, fan_data[i].value);
+	
+			for (j = strlen(string); j < 22; j ++) {
+				string[j] = ' ';
+			}
+			string[22] = '\0';
+			wprintw(win, "%s ", string);
+	
+			fan_displayed ++;
+
+			if (fan_displayed % 3 == 0) {
+				linepos ++;
+       				mvwprintw(win, linepos, 1, "            ");
+			}
+		}
+	}
+
+	if (fan_qty == 0) {
+		wprintw(win, "Not supported");
+	}
+
+	mvwhline(win, linepos + 2, 0, 0, COLS); 
+
+	burnin_start = (linepos + 3);
 
 	sprintf(label, "Test");
 	pos = (17 - strlen(label)) / 2;
@@ -851,7 +1083,8 @@ int setup_screen() {
 	init_pair(3, COLOR_YELLOW, COLOR_BLACK);
 
 	stat_width = COLS;
-	stat_height = STAT_MIN_ROWS + burnin_script_count;
+	printf("%d\n", temp_qty);
+	stat_height = STAT_MIN_ROWS + (temp_qty / 3) +  (fan_qty / 3) +  burnin_script_count;
 	stat_y = 0;
 	stat_x = 0;
 
@@ -1003,7 +1236,7 @@ int dump_stats() {
 
 	fprintf(fp, "TEMP_QTY=\"%d\"\n", temp_qty);
 	for (i = 0; i < temp_qty; i ++) {
-		fprintf(fp, "TEMP_%d=\"%.0f\"\n", i, temp_data[i]);
+		fprintf(fp, "TEMP_%d=\"%.0f\"\n", i, temp_data[i].value);
 	}
 
 	fprintf(fp, "DISK_QTY=\"%d\"\n", disk_qty);
@@ -1148,6 +1381,7 @@ int update_stats() {
 		get_cpu_usage(); 
 		get_mem_usage();
 		get_lm_sensors(); 
+		get_ipmi_sensors(); 
 		get_hd_info(); 
 		get_nic_info();
 
@@ -1404,8 +1638,8 @@ int update_logdev_write(FILE *fp) {
 	
 	fprintf(fp, "%s : temps:", cur_time);
 	for (i = 0; i < temp_qty; i ++) {
-		if (temp_data[i] > 0) {
-			fprintf(fp, "%.1fC  ", temp_data[i]);
+		if (temp_data[i].value > 0) {
+			fprintf(fp, "%.1fC  ", temp_data[i].value);
 		}
 	}
 	if (temp_qty == 0) {
@@ -1543,6 +1777,10 @@ int main(int argc, char **argv) {
 	}
 
 	find_burnin_tests();
+	get_lm_sensors(); 
+
+	get_ipmi_sensors(); 
+
 	setup_screen();			/* initalize the ncurses screen */
 
 	/* these functions do not need to be run multiple times */

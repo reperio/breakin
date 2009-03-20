@@ -3,7 +3,8 @@
 
 #define MAX_DIMMS 32
 #define MAX_CPUS 16
-#define MAX_TEMPS 10
+#define MAX_TEMPS 30
+#define MAX_FANS 30
 #define MAX_DISKS 24
 #define MAX_BURNIN_SCRIPTS 64
 #define MAX_NUM_NICS 32
@@ -14,6 +15,7 @@ time_t start_time;
 
 int cpu_qty = 0;
 int temp_qty = 0;
+int fan_qty = 0;
 int disk_qty = 0;
 int burnin_script_count = 0;
 int dimm_qty = 0;
@@ -37,7 +39,16 @@ struct nic_data_t {
 	char		ipaddr[32];
 } nic_data[MAX_NUM_NICS];
 
-double temp_data[MAX_TEMPS];
+struct temp_data_t {
+	char		name[16];
+	double		value;
+} temp_data[MAX_TEMPS];
+
+struct fan_data_t {
+	char		name[16];
+	int		value;
+} fan_data[MAX_FANS];
+
 
 struct disk_info_t {
 	char		device[30];

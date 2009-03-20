@@ -33,4 +33,10 @@ then
 	fi
 fi
 
+echo "Getting IPMI values"
+/etc/breakin/ipmi.sh
+
+echo "Starting IPMI server process"
+/etc/breakin/ipmi.sh 30 &
+
 exec /usr/local/bin/breakin ${ARGS}

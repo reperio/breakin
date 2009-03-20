@@ -27,7 +27,12 @@ do
 	TEMPS="${DRIVE_NAME}: `hddtemp -n -uC /dev/${DRIVE_NAME}`C ${TEMPS}"
 
 	/usr/bin/smartctl -q silent -a /dev/${DRIVE_NAME} > /dev/null 2>&1
-	if [ "$?" != 0 ]
+	ERRCODE=$?
+
+	if [ "${ERRCODE}" = 4 ]
+	then
+		FOUND_ERROR=0	
+	elif [ "${ERRCODE}" != 0 ]
 	then
 		echo "SMART errors on ${DRIVE_NAME}"
 		FOUND_ERROR=1
