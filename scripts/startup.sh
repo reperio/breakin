@@ -39,4 +39,7 @@ echo "Getting IPMI values"
 echo "Starting IPMI server process"
 /etc/breakin/ipmi.sh 30 &
 
+echo "Flushing the mcelog for bogus MCE events"
+/usr/bin/mcelog --dmi >/dev/null 2>&1
+
 exec /usr/local/bin/breakin ${ARGS}
