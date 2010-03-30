@@ -50,22 +50,22 @@ do
 			continue # skip non-removable, non-usb devices
 		fi
 	fi
-	DEV_NAME=`basename ${i}`
-	vol_id -x /dev/${DEV_NAME} > /tmp/vol_id.tmp
-	if [ $? != 0 ] # no file system found
-	then
+	#DEV_NAME=`basename ${i}`
+	#vol_id -x /dev/${DEV_NAME} > /tmp/vol_id.tmp
+	#if [ $? != 0 ] # no file system found
+	#then
 		for j in `ls -1d ${i}/?d?[0-9] 2>/dev/null`
 		do
 			DEV_NAME=`basename ${j}`
-			vol_id -x /dev/${DEV_NAME} > /tmp/vol_id.tmp
-			if [ $? = 0 ]
-			then
+			#vol_id -x /dev/${DEV_NAME} > /tmp/vol_id.tmp
+			#if [ $? = 0 ]
+			#then
 				trymount $DEV_NAME
-			fi
+			#fi
 		done
-	else # found file system
-		trymount $DEV_NAME
-	fi
+	#else # found file system
+	#	trymount $DEV_NAME
+	#fi
 done
 
 echo "No USB device found."
