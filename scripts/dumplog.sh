@@ -17,7 +17,7 @@ trymount() {
 	echo "==== breakin.dat ====" >> /var/snapshot/breakin.dmp
 	cat /var/run/breakin.dat >> /var/snapshot/breakin.dmp
 	echo "==== breakin.log ====" >> /var/snapshot/breakin.dmp
-	cat /var/logdev/breakin.log >> /var/snapshot/breakin.dmp
+	cat /var/log/breakin.log >> /var/snapshot/breakin.dmp
 	echo "==== syslog ====" >> /var/snapshot/breakin.dmp
 	cat /var/log/messages >> /var/snapshot/breakin.dmp
 	echo "==== cmdline ====" >> /var/snapshot/breakin.dmp
