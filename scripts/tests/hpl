@@ -8,15 +8,14 @@ then
 	. /var/run/breakin.dat
 fi
 
-BINARY="xhpl.intel"
+BINARY="xhpl.amd"
 RUNNING_JOB=""
 
-# FIXME search for a better way to increase the load on AMD systems
-#echo "${CPU_MODEL}" | grep "AMD" > /dev/null 2>&1
-#if [ "$?" = "0" ]
-#then
-#	BINARY="xhpl.amd"
-#fi
+echo "${CPU_MODEL}" | grep "Intel" > /dev/null 2>&1
+if [ "$?" = "0" ]
+then
+	BINARY="xhpl.intel"
+fi
 
 # the top template
 cat /usr/local/breakin/hpl/HPL-top.txt > /usr/local/breakin/hpl/HPL.dat
@@ -43,22 +42,10 @@ then
 	echo "2     Ps" >> /usr/local/breakin/hpl/HPL.dat	
 	echo "1     Qs" >> /usr/local/breakin/hpl/HPL.dat	
 
-elif [ "${CPU_QTY}" = "3" ]
-then
-
-	echo "3     Ps" >> /usr/local/breakin/hpl/HPL.dat	
-	echo "1     Qs" >> /usr/local/breakin/hpl/HPL.dat	
-
 elif [ "${CPU_QTY}" = "4" ]
 then
 
 	echo "2     Ps" >> /usr/local/breakin/hpl/HPL.dat	
-	echo "2     Qs" >> /usr/local/breakin/hpl/HPL.dat	
-
-elif [ "${CPU_QTY}" = "6" ]
-then
-
-	echo "3     Ps" >> /usr/local/breakin/hpl/HPL.dat	
 	echo "2     Qs" >> /usr/local/breakin/hpl/HPL.dat	
 
 elif [ "${CPU_QTY}" = "8" ]
@@ -67,24 +54,11 @@ then
 	echo "4     Ps" >> /usr/local/breakin/hpl/HPL.dat	
 	echo "2     Qs" >> /usr/local/breakin/hpl/HPL.dat	
 
-elif [ "${CPU_QTY}" = "12" ]
-then
-
-	echo "4     Ps" >> /usr/local/breakin/hpl/HPL.dat	
-	echo "3     Qs" >> /usr/local/breakin/hpl/HPL.dat	
-
 elif [ "${CPU_QTY}" = "16" ]
 then
 
 	echo "4     Ps" >> /usr/local/breakin/hpl/HPL.dat	
 	echo "4     Qs" >> /usr/local/breakin/hpl/HPL.dat	
-
-elif [ "${CPU_QTY}" = "24" ]
-then
-
-	echo "6     Ps" >> /usr/local/breakin/hpl/HPL.dat	
-	echo "4     Qs" >> /usr/local/breakin/hpl/HPL.dat	
-
 elif [ "${CPU_QTY}" = "32" ]
 then
 
