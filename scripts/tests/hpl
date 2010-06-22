@@ -89,6 +89,16 @@ then
 
 	echo "8     Ps" >> /usr/local/breakin/hpl/HPL.dat
 	echo "4     Qs" >> /usr/local/breakin/hpl/HPL.dat
+elif [ "${CPU_QTY}" = "48" ]
+then
+
+	echo "8     Ps" >> /usr/local/breakin/hpl/HPL.dat
+	echo "6     Qs" >> /usr/local/breakin/hpl/HPL.dat
+elif [ "${CPU_QTY}" = "64" ]
+then
+
+	echo "8     Ps" >> /usr/local/breakin/hpl/HPL.dat
+	echo "8     Qs" >> /usr/local/breakin/hpl/HPL.dat
 fi
 cat /usr/local/breakin/hpl/HPL-bottom.txt >> /usr/local/breakin/hpl/HPL.dat
 
