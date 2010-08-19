@@ -1,0 +1,22 @@
+#!/bin/ash
+# read breakin.dat every 2 seconds and blink the LED if everything is fine
+
+. /etc/library.sh
+
+# read in our hardware configs
+if [ -e /var/run/breakin.dat ]
+then
+        . /var/run/breakin.dat
+fi
+
+if [ ${BURNIN_TOTAL_FAIL_QTY} -gt 0 ]
+then
+	ipmitool chassis identify force
+	echo "Other tests have errors, turning on ID light and exiting."
+	exit 255
+fi
+
+ipmitool chassis identify 1
+
+sleep 2
+exit 0

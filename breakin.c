@@ -1274,6 +1274,7 @@ int dump_stats() {
 	}
 
 	fprintf(fp, "BURNIN_QTY=\"%d\"\n", burnin_script_count);
+	int total_failed = 0;
 	for (i = 0; i < burnin_script_count; i ++) {
 		fprintf(fp, "BURNIN_%d_NAME=\"%s\"\n", i, 
 			burnin_scripts[i].name);
@@ -1285,7 +1286,9 @@ int dump_stats() {
 			burnin_scripts[i].pass_count);
 		fprintf(fp, "BURNIN_%d_FAIL_QTY=\"%d\"\n", i, 
 			burnin_scripts[i].fail_count);
+		total_failed = total_failed + burnin_scripts[i].fail_count;
 	}
+	fprintf(fp, "BURNIN_TOTAL_FAIL_QTY=\"%d\"\n", total_failed);
 
 	fclose(fp);
 }
