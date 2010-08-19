@@ -113,7 +113,7 @@ export LD_LIBRARY_PATH
 cd /usr/local/breakin/hpl
 if [ -x /usr/local/bin/${BINARY} ]
 then
-	/usr/local/bootimage-mpich/bin/mpirun -np ${CPU_QTY} /usr/local/bin/${BINARY} > /tmp/hpl.log 2>&1
+	/usr/local/bootimage-openmpi/bin/orterun -np ${CPU_QTY} -mca btl sm,self /usr/local/bin/${BINARY} > /tmp/hpl.log 2>&1
 else
 	echo "Binary for this host CPU variant is not available."
 fi
