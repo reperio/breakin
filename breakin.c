@@ -796,7 +796,7 @@ int draw_stat_window(WINDOW *win) {
         mvwprintw(win, linepos, 1, "Fans        ", fan_qty);
 
 	for (i = 0; i < fan_qty; i ++) {
-		if (fan_data[i].value > 0) {
+		if (fan_data[i].value >= 0) {
 			char string[22];
 			char label[10];
 	
