@@ -107,8 +107,8 @@ OMP_NUM_THREADS=1
 GOTO_NUM_THREADS=1
 export OMP_NUM_THREADS GOTO_NUM_THREADS
 
-LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64
-export LD_LIBRARY_PATH
+PATH=/bin:/usr/bin:/usr/local/bin
+export PATH
 
 cd /usr/local/breakin/hpl
 if [ -x /usr/local/bin/${BINARY} ]
