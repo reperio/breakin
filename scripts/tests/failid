@@ -11,12 +11,12 @@ fi
 
 if [ ${BURNIN_TOTAL_FAIL_QTY} -gt 0 ]
 then
-	ipmitool chassis identify force
+	ipmitool chassis identify force > /dev/null 2>&1
 	echo "Other tests have errors, turning on ID light and exiting."
 	exit 255
 fi
 
-ipmitool chassis identify 1
+ipmitool chassis identify 1 > /dev/null 2>&1
 
 sleep 2
 exit 0
