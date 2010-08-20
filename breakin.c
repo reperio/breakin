@@ -483,6 +483,8 @@ int get_ipmi_sensors() {
 	char label[20]; 
 	int value = 0;
 	char *chunk, *string;
+	fan_qty = 0;
+	temp_qty = 0;
 
 	fp = fopen("/tmp/ipmi_temp.log", "r");
 	if (fp != NULL) {
@@ -493,7 +495,7 @@ int get_ipmi_sensors() {
 				chunk = strsep(&string, "|");
 				/* label */
 				if (i == 0) {
-					snprintf(label, sizeof(label), "IPMI %s", trim(chunk));
+					snprintf(label, sizeof(label), "%s", trim(chunk));
 					found_label = 1;
 				}
 				/* value */
@@ -523,7 +525,7 @@ int get_ipmi_sensors() {
 				chunk = strsep(&string, "|");
 				/* label */
 				if (i == 0) {
-					snprintf(label, sizeof(label), "IPMI %s", trim(chunk));
+					snprintf(label, sizeof(label), "%s", trim(chunk));
 					found_label = 1;
 				}
 				/* value */
@@ -534,7 +536,7 @@ int get_ipmi_sensors() {
 				i ++;
 			}	
 			if (found_label && found_value) {
-				if (temp_qty < MAX_TEMPS) {
+				if (temp_qty < MAX_FANS) {
 					snprintf(fan_data[fan_qty].name, sizeof(fan_data[fan_qty].name), "%s", label);
 					fan_data[fan_qty].value = value;
 					fan_qty ++;
