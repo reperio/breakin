@@ -920,9 +920,9 @@ int setup_screen() {
 	stat_y = 0;
 	stat_x = 0;
 
-	log_height = LINES - stat_height - 2;
+	log_height = LINES - stat_height - 3;
 	log_width = COLS;
-	log_y = stat_height;
+	log_y = stat_height + 1;
 	log_x = 0;
 
 
