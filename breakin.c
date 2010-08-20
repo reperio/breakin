@@ -546,176 +546,6 @@ int get_ipmi_sensors() {
 	return 0;
 }
 
-/***********************************************************
- *  search through /proc/bus/i2c/devices/ for temp_input files
- *  these are temperature sensors
- ***********************************************************/
-int get_lm_sensors() {
-	DIR *sensor_dir, *dev_dir;
-	FILE *fp;
-	struct dirent *dir_entry, *dev_entry, *de, *de2;
-	char dirname[BUFSIZ], filename[BUFSIZ], buf[BUFSIZ], *ptr;
-	int tempcount = 0, fancount = 0, i;
-	
-	memset(buf, '\0', sizeof(buf));
-
-	/* every iteration we reset are qty of sensors back to 0 */
-	fan_qty = 0;
-	temp_qty = 0;
-
-	sensor_dir = opendir(SENSOR_PATH);
-	if(sensor_dir == NULL) {
-		return 0;
-	}
-
-	dir_entry = (struct dirent *) malloc( 
-		offsetof(struct dirent, d_name) + 256);
-
-	dev_entry = (struct dirent *) malloc( 
-		offsetof(struct dirent, d_name) + 256);
-
-	while ((readdir_r(sensor_dir, dir_entry, &de) == 0) && 
-		de != NULL) {
-
-		/* if it's a directory and dosen't start w/ a . */
-		if (dir_entry->d_type = 'D' && *dir_entry->d_name != '.') {
-			sprintf(dirname, "%s/%s/device", SENSOR_PATH, 
-				dir_entry->d_name);
-			dev_dir = opendir(dirname);
-
-			while ((readdir_r(dev_dir, dev_entry, &de2) == 0) && 
-				de2 != NULL) {
-				int found_temp = 0;
-				int found_fan = 0;
-
-				/* we only want files with the name 
-				   temp[0-9]_input */
-
-				if (tempcount > MAX_TEMPS) {
-					break;
-				}
-				
-				/* it's a temperature entry */
-				if (strncmp(dev_entry->d_name, "temp", 4) == 0) {
-					ptr = strstr(dev_entry->d_name, "_input");
-					if (ptr != NULL) {
-						sprintf(filename, "%s/%s", dirname, dev_entry->d_name);
-						fp = fopen(filename, "r");
-						if (fp != NULL) {
-							if (fgets(buf, sizeof(buf), fp) != NULL) {
-								temp_data[tempcount].value = atoi(trim(buf));
-								temp_data[tempcount].value = 
-									temp_data[tempcount].value / 1000;
-								found_temp = 1;
-							}
-							fclose(fp);
-						}
-						// core temp is different... argh...
-						if (found_temp) {
-              						char buf[1024];
-							int len;
-							double max;
-
-							sprintf(filename, "%s/driver", dirname);
-
-							if ((len = readlink(filename, buf, sizeof(buf)-1)) != -1);
-                  						buf[len] = '\0';
-
-							if (strcmp(basename(buf), "coretemp") == 0) {
-								ptr = strtok(dev_entry->d_name, "_");
-								if (ptr != NULL) {
-									sprintf(filename, "%s/%s_max", dirname, ptr);
-									fp = fopen(filename, "r");
-									if (fp != NULL) {
-										if (fgets(buf, sizeof(buf), fp) != NULL) {
-											max = atoi(trim(buf));
-											max = max / 1000;
-											temp_data[tempcount].value = 
-												(max / 100) * temp_data[tempcount].value;
-										}
-										fclose(fp);
-									}
-								}
-							}
-						}
-					}
-				}
-				
-				/* it's a fan entry */
-				else if (strncmp(dev_entry->d_name, "fan", 3) == 0) {
-					ptr = strstr(dev_entry->d_name, "_input");
-					if (ptr != NULL) {
-						sprintf(filename, "%s/%s", dirname, dev_entry->d_name);
-						fp = fopen(filename, "r");
-						if (fp != NULL) {
-							if (fgets(buf, sizeof(buf), fp) != NULL) {
-								fan_data[fancount].value = atoi(trim(buf));
-								found_fan = 1;
-							}
-							fclose(fp);
-						}
-					}
-				}
-
-				/* is there a matching XXXXXX_label? */
-				if (found_temp || found_fan) {
-					ptr = strtok(dev_entry->d_name, "_");
-					if (ptr != NULL) {
-						sprintf(filename, "%s/%s_label", dirname, ptr);
-						fp = fopen(filename, "r");
-						if (fp != NULL) {
-							if (fgets(buf, sizeof(buf), fp) != NULL) {
-								if (found_temp) {	
-									snprintf(temp_data[tempcount].name, sizeof(temp_data[tempcount].name), "%s", trim(buf));
-								}
-								else if (found_fan) {	
-									snprintf(fan_data[fancount].name, sizeof(fan_data[fancount].name), "%s", trim(buf));
-								}
-							}
-							fclose(fp);
-						}
-						else {
-							if (found_temp) {
-								sprintf(temp_data[tempcount].name, "%s", ptr);
-							}
-							else if (found_fan) {
-								sprintf(fan_data[fancount].name, "%s", ptr);
-							}
-						}
-					}
-					else {
-						if (found_temp) {
-							sprintf(temp_data[tempcount].name, "");
-						}
-						else if (found_fan) {
-							sprintf(fan_data[fancount].name, "");
-						}
-					}
-					
-				}
-
-
-				if (found_temp) {
-					tempcount ++;
-				}
-				else if (found_fan) {
-					fancount ++;
-				}
-
-			}
-			closedir(dev_dir);
-		}
-	} 
-
-	free(dir_entry);
-	free(dev_entry);
-
-	closedir(sensor_dir);
-	temp_qty = tempcount;
-	fan_qty = fancount;
-
-}
-
 int read_string_from_file(char *filename, char *data) {
 	FILE *fp;
 
@@ -1383,7 +1213,6 @@ int update_stats() {
 
 		get_cpu_usage(); 
 		get_mem_usage();
-		get_lm_sensors(); 
 		get_ipmi_sensors(); 
 		get_hd_info(); 
 		get_nic_info();
@@ -1780,7 +1609,6 @@ int main(int argc, char **argv) {
 	}
 
 	find_burnin_tests();
-	get_lm_sensors(); 
 
 	get_ipmi_sensors(); 
 
