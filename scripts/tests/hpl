@@ -66,6 +66,12 @@ then
 	echo "4     Ps" >> /usr/local/breakin/hpl/HPL.dat
 	echo "2     Qs" >> /usr/local/breakin/hpl/HPL.dat
 
+elif [ "${CPU_QTY}" = "10" ]
+then
+
+       echo "5     Ps" >> /usr/local/breakin/hpl/HPL.dat
+       echo "2     Qs" >> /usr/local/breakin/hpl/HPL.dat
+
 elif [ "${CPU_QTY}" = "12" ]
 then
 
@@ -77,6 +83,12 @@ then
 
 	echo "4     Ps" >> /usr/local/breakin/hpl/HPL.dat
 	echo "4     Qs" >> /usr/local/breakin/hpl/HPL.dat
+
+elif [ "${CPU_QTY}" = "20" ]
+then
+
+        echo "5     Ps" >> /usr/local/breakin/hpl/HPL.dat
+        echo "4     Qs" >> /usr/local/breakin/hpl/HPL.dat
 
 elif [ "${CPU_QTY}" = "24" ]
 then
@@ -106,6 +118,13 @@ cat /usr/local/breakin/hpl/HPL-bottom.txt >> /usr/local/breakin/hpl/HPL.dat
 OMP_NUM_THREADS=1
 GOTO_NUM_THREADS=1
 export OMP_NUM_THREADS GOTO_NUM_THREADS
+
+if [ -e /usr/local/bin/xhpl.library ]
+then
+	. /usr/local/bin/xhpl.library
+	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HPL_LD_LIBRARY_PATH}
+	export LD_LIBRARY_PATH
+fi
 
 PATH=/bin:/usr/bin:/usr/local/bin
 export PATH
