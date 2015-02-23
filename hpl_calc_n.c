@@ -7,7 +7,7 @@
 
 int main(int argc, char **argv) {
 
-	long long int ram;
+	unsigned long long int ram;
 	long int divider;
 	long double n;
 	long double jn;
@@ -15,16 +15,19 @@ int main(int argc, char **argv) {
 
 	ram = atoll(argv[1]);
 
+
 	ram = ram - MEM_RESERVE;
 
 	ram = ram * 1024 * MEM_PERCENT;
+
 
 	n = (long double) ram / 8;
 
 	n = sqrtl(n);
 
-	divider = (int)n / 128;
-	n = divider * 128;
+
+	divider = (long int)n / 192;
+	n = divider * 192;
 
 	printf("%.0Lf\n", n);
 }

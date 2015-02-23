@@ -132,7 +132,7 @@ export PATH
 cd /usr/local/breakin/hpl
 if [ -x /usr/local/bin/${BINARY} ]
 then
-	/usr/local/bootimage-openmpi/bin/orterun -np ${CPU_QTY} -mca btl sm,self -stdin none /usr/local/bin/${BINARY} > /tmp/hpl.log 2>&1
+	/usr/local/bootimage-openmpi/bin/orterun --allow-run-as-root -np ${CPU_QTY} -mca btl sm,self -stdin none /usr/local/bin/${BINARY} > /tmp/hpl.log 2>&1
 else
 	echo "Binary for this host CPU variant is not available."
 fi
