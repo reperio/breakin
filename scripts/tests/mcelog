@@ -5,7 +5,7 @@
 
 FOUND_ERROR=0
 
-OUTPUT=`/usr/sbin/mcelog --dmi`
+OUTPUT=`/usr/sbin/mcelog --client`
 RETVAL=$?
 if [ $RETVAL = 1 ]
 then
