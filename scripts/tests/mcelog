@@ -1,11 +1,11 @@
 #!/bin/ash
-# read /dev/mcelog every 5 seconds because that's the kernel interval
+# read /dev/mcelog every 10 seconds 
 
 . /etc/library.sh
 
 FOUND_ERROR=0
 
-OUTPUT=`/usr/sbin/mcelog --client`
+OUTPUT=`/usr/sbin/mcelog --dmi`
 RETVAL=$?
 if [ $RETVAL = 1 ]
 then
@@ -22,5 +22,5 @@ then
 	fi
 
 fi
-sleep 5
+sleep 10
 exit $FOUND_ERROR 
