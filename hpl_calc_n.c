@@ -3,7 +3,7 @@
 
 /* what percent of ram are we shooting for */
 #define MEM_PERCENT .94;
-#define MEM_RESERVE 1024 * 512;
+#define MEM_RESERVE 1024 * 768;
 
 int main(int argc, char **argv) {
 
