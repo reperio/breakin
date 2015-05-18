@@ -677,6 +677,8 @@ int draw_detail_window(WINDOW *win) {
 
 	wprintw(win, "BIOS : %s\n", dmi_data.bios_version);
 
+	wprintw(win, "SYSTEM : %s SN: %s\n", dmi_data.sys_product, dmi_data.sys_serial);
+
 	wprintw(win, "CPU  : %d x %s (%.0f MHz)\n", cpu_info.qty, 
 		cpu_info.model, cpu_info.speed);
 
