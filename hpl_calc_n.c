@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 
 /* what percent of ram are we shooting for */
@@ -13,7 +14,9 @@ int main(int argc, char **argv) {
 	long double jn;
 	double mem_percent = MEM_PERCENT;
 
-	ram = atoll(argv[1]);
+	ram = strtoull(argv[1], (char **)NULL, 10);
+
+	printf("RAM %llu\n", ram);
 
 
 	ram = ram - MEM_RESERVE;
