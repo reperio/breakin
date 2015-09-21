@@ -135,6 +135,7 @@ then
 	/usr/local/bootimage-openmpi/bin/orterun --allow-run-as-root -np ${CPU_QTY} -mca btl sm,self -stdin none /usr/local/bin/${BINARY} > /tmp/hpl.log 2>&1
 else
 	echo "Binary for this host CPU variant is not available."
+	return 255
 fi
 
 if [ "$?" -ne 0 ]
@@ -145,6 +146,7 @@ then
 else
 	GFLOPS=`grep ^WR /tmp/hpl.log | tail -1 | awk '{print $7}'`
 	echo "MSG: Passed (${GFLOPS} GFLOPS)" 
+	cp /tmp/hpl.log /tmp/hpl.log.previous
 	exit 0
 fi
 done
