@@ -16,8 +16,6 @@ int main(int argc, char **argv) {
 
 	ram = strtoull(argv[1], (char **)NULL, 10);
 
-	printf("RAM %llu\n", ram);
-
 
 	ram = ram - MEM_RESERVE;
 
