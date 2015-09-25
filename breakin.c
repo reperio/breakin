@@ -889,7 +889,7 @@ int draw_stat_window(WINDOW *win) {
 	}
 
 	running_time(run_time);
-	mvwprintw(bottom_bar, 1, 0," [F2] = hardware info  [F3] = dump log to usb  [F8] = quit");
+	mvwprintw(bottom_bar, 1, 0," [F2]=hardware info  [F3]=dump log to usb [F4]=redraw scr. [F8]=quit");
 	wattron(bottom_bar,COLOR_PAIR(2));
 	mvwprintw(bottom_bar, 1, COLS - 13, "%s", run_time);
 	wattroff(bottom_bar,COLOR_PAIR(2));
@@ -1178,6 +1178,12 @@ int handle_keypress() {
 			pthread_t dump_thread;
 			pthread_create(&dump_thread, NULL , (void *)dump_log, NULL);
 			pthread_detach(dump_thread);
+		}
+        else if (ch == KEY_F(4)) {
+			redrawwin(log_win);
+			redrawwin(stat_win);
+			redrawwin(bottom_bar);
+			refresh();
 		}
 		/* F8 = quit */
 		else if (ch == KEY_F(8)) {
