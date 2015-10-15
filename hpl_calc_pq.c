@@ -16,6 +16,12 @@ int main(int argc, char **argv) {
 	}
 	q = cores / p;
 
-	printf("%d            Ps\n", p);
-	printf("%d            Qs\n", q);
+	if (p > q) {
+		printf("%d            Ps\n", q);
+		printf("%d            Qs\n", p);
+	}
+	else {
+		printf("%d            Ps\n", p);
+		printf("%d            Qs\n", q);
+	}
 }
