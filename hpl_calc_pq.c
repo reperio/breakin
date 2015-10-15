@@ -16,6 +16,7 @@ int main(int argc, char **argv) {
 	}
 	q = cores / p;
 
+	/* always make Q bigger than P */
 	if (p > q) {
 		printf("%d            Ps\n", q);
 		printf("%d            Qs\n", p);
