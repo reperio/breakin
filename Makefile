@@ -7,7 +7,7 @@ INSTALLPREFIX=SET_ME
 
 OBJS=breakin.o util.o dmidecode.o bench_stream.o bench_disk.o
 
-all: breakin hpl_calc_n cryptpasswd
+all: breakin hpl_calc_n cryptpasswd hpl_calc_pq
 
 %.o: %.c
 	$(CC) -DPRODUCT_VERSION=\"${VERSION}\" ${CFLAGS} -c $<
