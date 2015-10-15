@@ -28,7 +28,7 @@ cryptpasswd: cryptpasswd.o
 	${CC} ${LDFLAGS} $^ -lcrypt -o $@
 
 clean:
-	rm -f *.o breakin breakin.static hpl_calc_n cryptpasswd .buildfoo
+	rm -f *.o breakin breakin.static hpl_calc_n cryptpasswd .buildfoo hpl_calc_pq
 
 install: breakin hpl_calc_n cryptpasswd
 
