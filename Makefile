@@ -21,6 +21,9 @@ breakin.static: ${OBJS}
 hpl_calc_n: hpl_calc_n.o
 	${CC} ${LDFLAGS} $^ -lm -o $@  
 
+hpl_calc_pq: hpl_calc_pq.o
+	${CC} ${LDFLAGS} $^ -lm -o $@  
+
 cryptpasswd: cryptpasswd.o
 	${CC} ${LDFLAGS} $^ -lcrypt -o $@
 
@@ -32,6 +35,7 @@ install: breakin hpl_calc_n cryptpasswd
 	mkdir -p ${INSTALLPREFIX}/usr/local/bin
 	cp -p breakin ${INSTALLPREFIX}/usr/local/bin/breakin
 	cp -p hpl_calc_n ${INSTALLPREFIX}/usr/local/bin/hpl_calc_n
+	cp -p hpl_calc_pq ${INSTALLPREFIX}/usr/local/bin/hpl_calc_pq
 	cp -p cryptpasswd ${INSTALLPREFIX}/usr/local/bin/cryptpasswd
 
 	mkdir -p ${INSTALLPREFIX}/etc/breakin/tests
