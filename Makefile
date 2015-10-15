@@ -7,7 +7,7 @@ INSTALLPREFIX=SET_ME
 
 OBJS=breakin.o util.o dmidecode.o bench_stream.o bench_disk.o
 
-all: breakin hpl_calc_n cryptpasswd
+all: breakin hpl_calc_n cryptpasswd hpl_calc_pq
 
 %.o: %.c
 	$(CC) -DPRODUCT_VERSION=\"${VERSION}\" ${CFLAGS} -c $<
@@ -21,17 +21,21 @@ breakin.static: ${OBJS}
 hpl_calc_n: hpl_calc_n.o
 	${CC} ${LDFLAGS} $^ -lm -o $@  
 
+hpl_calc_pq: hpl_calc_pq.o
+	${CC} ${LDFLAGS} $^ -lm -o $@  
+
 cryptpasswd: cryptpasswd.o
 	${CC} ${LDFLAGS} $^ -lcrypt -o $@
 
 clean:
-	rm -f *.o breakin breakin.static hpl_calc_n cryptpasswd .buildfoo
+	rm -f *.o breakin breakin.static hpl_calc_n cryptpasswd .buildfoo hpl_calc_pq
 
 install: breakin hpl_calc_n cryptpasswd
 
 	mkdir -p ${INSTALLPREFIX}/usr/local/bin
 	cp -p breakin ${INSTALLPREFIX}/usr/local/bin/breakin
 	cp -p hpl_calc_n ${INSTALLPREFIX}/usr/local/bin/hpl_calc_n
+	cp -p hpl_calc_pq ${INSTALLPREFIX}/usr/local/bin/hpl_calc_pq
 	cp -p cryptpasswd ${INSTALLPREFIX}/usr/local/bin/cryptpasswd
 
 	mkdir -p ${INSTALLPREFIX}/etc/breakin/tests
