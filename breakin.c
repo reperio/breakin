@@ -1658,7 +1658,7 @@ int main(int argc, char **argv) {
 	nanosleep(&ts, NULL);
 
 	/* step 1: we setup the hardware */
-	hw_fp = fork_cmd(&pid, "Staring hardware setup", 
+	hw_fp = fork_cmd(&pid, "Starting hardware setup", 
 		"/etc/breakin/hardware.sh"); 
 
 	hardware_finished = 0;	/* our hardware setup is not done */
