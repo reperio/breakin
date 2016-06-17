@@ -500,8 +500,9 @@ int get_ipmi_sensors() {
 				}
 				/* value */
 				else if (i == 1) {
-					sscanf(chunk, "%d %*s", &value);	
-					found_value = 1;
+					if (sscanf(chunk, "%d %*s", &value) >= 1) {
+						found_value = 1;
+					}
 				}
 				i ++;
 			}	
