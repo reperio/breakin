@@ -46,6 +46,7 @@
 #define PRODUCT_NAME "Advanced Clustering Breakin"
 #define SENSOR_PATH "/sys/class/hwmon"
 #define STAT_FILE "/var/run/breakin.dat"
+#define STAT_FILE_TMP "/var/run/breakin.dat.tmp"
 #define BLOCK_DEV_PATH "/sys/block"
 #define BURNIN_SCRIPT_PATH "/etc/breakin/tests"
 
@@ -1046,7 +1047,8 @@ int dump_stats() {
 	FILE *fp;
 	int i = 0;
 
-	fp = fopen(STAT_FILE, "w+");
+	// Make writes to a temp file
+	fp = fopen(STAT_FILE_TMP, "w+");
 	if (fp == NULL) {
 		return 1;
 	}
@@ -1126,6 +1128,8 @@ int dump_stats() {
 	fprintf(fp, "BURNIN_TOTAL_FAIL_QTY=\"%d\"\n", total_failed);
 
 	fclose(fp);
+	// Move tmp file to actual file so write/change operation is atomic
+	rename(STAT_FILE_TMP, STAT_FILE);
 }
 
 /* this should be called within it's own thread */
