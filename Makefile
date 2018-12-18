@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS= -DTHREADING
 LDFLAGS= -DTHREADING 
 LIBS=-lpanel -lncurses `curl-config --libs`
-VERSION:=0.0
+VERSION?=0.0
 INSTALLPREFIX=SET_ME
 
 OBJS=breakin.o util.o dmidecode.o bench_stream.o bench_disk.o
