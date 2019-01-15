@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS= -DTHREADING
 LDFLAGS= -DTHREADING 
-LIBS=-lpanel -lncurses `curl-config --libs`
+LIBS=-lpanel -lncurses -lcurl
 VERSION?=0.0
 INSTALLPREFIX=SET_ME
 
