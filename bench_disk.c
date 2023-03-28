@@ -98,17 +98,17 @@ double bench_disk (char *device) {
 
 	if ((shmid = shmget(IPC_PRIVATE, TIMING_BUF_BYTES, 0600)) == -1) {
 		perror ("could not allocate sharedmem buf");
-		return;
+		return 1;
 	}
 	if (shmctl(shmid, SHM_LOCK, NULL) == -1) {
 		perror ("could not lock sharedmem buf");
 		(void) shmctl(shmid, IPC_RMID, NULL);
-		return;
+		return 1;
 	}
 	if ((buf = shmat(shmid, (char *) 0, 0)) == (char *) -1) {
 		perror ("could not attach sharedmem buf");
 		(void) shmctl(shmid, IPC_RMID, NULL);
-		return;
+		return 1;
 	}
 	if (shmctl(shmid, IPC_RMID, NULL) == -1)
 		perror ("shmctl(,IPC_RMID,) failed");

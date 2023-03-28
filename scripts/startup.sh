@@ -1,6 +1,7 @@
 #!/bin/ash
 
 ARGS=""
+DESTDIR=@DESTDIR@
 
 if [ "${_update_interval}" != "" ]
 then
@@ -34,12 +35,8 @@ then
 fi
 
 echo "Getting IPMI values"
-/etc/breakin/ipmi.sh
+${DESTDIR}/etc/breakin/ipmi.sh
 
 echo "Starting IPMI server process"
-/etc/breakin/ipmi.sh 30 &
-
-echo "Flushing the mcelog for bogus MCE events"
-/usr/bin/mcelog --dmi >/dev/null 2>&1
-
-exec /usr/local/bin/breakin ${ARGS}
+${DESTDIR}/etc/breakin/ipmi.sh 30 &
+exec ${DESTDIR}/bin/breakin ${ARGS}

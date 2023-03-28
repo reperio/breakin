@@ -48,11 +48,9 @@
 #define STAT_FILE "/var/run/breakin.dat"
 #define STAT_FILE_TMP "/var/run/breakin.dat.tmp"
 #define BLOCK_DEV_PATH "/sys/block"
-#define BURNIN_SCRIPT_PATH "/etc/breakin/tests"
 
-#define LOG_DEV "/var/logdev"
 #define LOG_FILE "/var/log/breakin.log"
-#define LOG_DEV_FILE "/var/logdev/breakin.log"
+#define LOG_DEV_FILE "/var/log/breakin.dev.log"
 
 #define ESCAPE 27
 
@@ -61,7 +59,11 @@
 #define TEMP_RED 60
 
 extern int errno;
+extern struct dmi_data_t dmi_data;
+extern int do_dmi_decode(void);
 
+int running_time(char *buf);
+int update_stats(void);
 WINDOW *create_newwin(int height, int width, int starty, int startx);
 WINDOW *create_subwin(WINDOW *parent, int height, int width, int starty, int startx);
 
@@ -210,51 +212,54 @@ size_t upload_handle_response(void *ptr, size_t size, size_t nmeb,
 }
 
 int upload_data(char *id, int interval, char *url, char *datafile, char *logfile) {
-
 	CURL *curl;
 	CURLcode res;
-	struct curl_httppost *formpost = NULL;
-	struct curl_httppost *lastptr = NULL;
-	char error_msg[CURL_ERROR_SIZE] = "";
+	curl_mime *mime;
+	curl_mimepart *part;
+
+	char error_msg[CURL_ERROR_SIZE];
 	long code;
 	char cur_time[BUFSIZ], buf[BUFSIZ];
 	int run_time;
 
+	memset(error_msg, 0, sizeof(error_msg));
 	run_time = time(NULL) - start_time;
 
-	curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "data",
-		CURLFORM_FILE, datafile, CURLFORM_END);
-
-	curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "log",
-		CURLFORM_FILE, logfile, CURLFORM_END);
-
-	curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "id",
-		CURLFORM_COPYCONTENTS, id, CURLFORM_END);
-
-	sprintf(buf, "%d", run_time);
-	curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "time",
-		CURLFORM_COPYCONTENTS, buf, CURLFORM_END);
-
-	sprintf(buf, "%d", interval);
-	curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "interval",
-		CURLFORM_COPYCONTENTS, buf, CURLFORM_END);
-
 	curl = curl_easy_init();
+	mime = curl_mime_init(curl);
 	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1);
 	curl_easy_setopt(curl, CURLOPT_URL, url);
-
-	curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error_msg);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, upload_handle_response);
+	curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
+
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "data");
+	curl_mime_filedata(part, datafile);
+
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "log");
+	curl_mime_filedata(part, logfile);
+
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "id");
+	curl_mime_data(part, id, CURL_ZERO_TERMINATED);
+
+	snprintf(buf, sizeof(buf), "%d", run_time);
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "time");
+	curl_mime_data(part, buf, CURL_ZERO_TERMINATED);
+
+	snprintf(buf, sizeof(buf), "%d", interval);
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "interval");
+	curl_mime_data(part, buf, CURL_ZERO_TERMINATED);
 
 	res = curl_easy_perform(curl);
-
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-
-	curl_formfree(formpost);
 	curl_easy_cleanup(curl);
-
-	return 0;
+	curl_mime_free(mime);
+	return res == OK && code >= 200 && code <= 299;
 }
 
 
@@ -311,7 +316,7 @@ double get_cpu_usage() {
 
 			if (cpu_count < MAX_CPUS) {
 
-				sscanf(buf, "%s %d %d %d %d", &cpu, &cpu_user, 
+				sscanf(buf, "%s %d %d %d %d", cpu, &cpu_user,
 					&cpu_nice, &cpu_sys, &cpu_idle);
 
 				cpu_usage[cpu_count].cpu_usage = 
@@ -382,16 +387,16 @@ int get_nic_info() {
 	Ifc.ifc_buf = (char *) IfcBuf;
 
 	if (! hardware_finished) {
-		return;
+		return 1;
 	}
  	
 	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		return(1);
+		return 1;
 	}
 	if (ioctl(fd, SIOCGIFCONF, &Ifc) < 0) {
 		log_message(strerror(errno));
 		close(fd);
-		return(1);
+		return 1;
 	}
 	num_ifreq = Ifc.ifc_len / sizeof(struct ifreq);
 	for ( pIfr = Ifc.ifc_req, i = 0 ; i < num_ifreq; pIfr++, i++ ) {
@@ -572,7 +577,7 @@ int get_hd_info() {
 	char filename[BUFSIZ], buf[BUFSIZ];
 	int diskcount = 0, error;
 	double disk_size;
-	struct dirent *dir_entry, *de;
+	struct dirent *dir_entry;
 	
 
 	block_dir = opendir(BLOCK_DEV_PATH);
@@ -580,18 +585,13 @@ int get_hd_info() {
 		return 0;
 	}
 
-	dir_entry = (struct dirent *) malloc( 
-		offsetof(struct dirent, d_name) + 256);
-
-	while ((readdir_r(block_dir, dir_entry, &de) == 0) && 
-		de != NULL && (diskcount < MAX_DISKS)) {
-
-
+	while ((dir_entry = readdir(block_dir)) != NULL &&
+		(diskcount < MAX_DISKS)) {
 		/* if it starts with hd or sd it's probably a disk */
 		if ((strncmp(dir_entry->d_name, "hd", 2) == 0) ||
 		    (strncmp(dir_entry->d_name, "sd", 2) == 0)) {
 
-			sprintf(filename, "%s/%s/removable", BLOCK_DEV_PATH, 
+			snprintf(filename, BUFSIZ, "%s/%s/removable", BLOCK_DEV_PATH,
 				dir_entry->d_name);
 			
 			/* if we can't read the data we skip to the next one */
@@ -601,23 +601,19 @@ int get_hd_info() {
 				}
 
 			}
-			sprintf(filename, "%s/%s/size", BLOCK_DEV_PATH, 
+			snprintf(filename, BUFSIZ, "%s/%s/size", BLOCK_DEV_PATH,
 				dir_entry->d_name);
 			if (! read_string_from_file(filename, buf)) {
 				continue;
 			}
 			disk_size = (double) atoll(buf) / 2097152;
-
-			sprintf(disk_info[diskcount].device, "%s", 
-				dir_entry->d_name);
-
+			strncpy(disk_info[diskcount].device, dir_entry->d_name, 30);
 			disk_info[diskcount].size = disk_size;
 			diskcount ++;
 		}
 	}
 
 	closedir(block_dir);
-	free(dir_entry);
 	disk_qty = diskcount;
 }
 
@@ -656,6 +652,7 @@ int draw_graph(WINDOW *win, int y, char *label, double percent) {
 	wattron(win, COLOR_PAIR(2));
 	wattron(win, A_BOLD);
 	mvwprintw(win, y, 13, "|");
+	mvwhline(win, y, 14 + show_bar, ' ', bar_width - show_bar);
 	mvwhline(win, y, 14, '=', show_bar);
 	mvwprintw(win, y, bar_width + 14, "|");
 	wattroff(win, COLOR_PAIR(2));
@@ -838,17 +835,15 @@ int draw_stat_window(WINDOW *win) {
 
 	burnin_start = (linepos + 3);
 
-	sprintf(label, "Test");
+	memcpy(label, "Test", 5);
 	pos = (17 - strlen(label)) / 2;
-	mvwprintw(win, burnin_start, pos, label);
-
+	mvwprintw(win, burnin_start, pos, "%s", label);
 	mvwprintw(win, burnin_start, 17, "Pass");
 	mvwprintw(win, burnin_start, 22, "Fail");
 
-	sprintf(label, "Last message");
+	memcpy(label, "Last message", 13);
 	pos = COLS - 27 - strlen(label) / 2;
-	mvwprintw(win, burnin_start, pos, label);
-
+	mvwprintw(win, burnin_start, pos, "%s", label);
 	mvwhline(win, burnin_start + 1, 0, 0, COLS); 
 	mvwhline(win, burnin_start + burnin_script_count + 2, 0, 0, COLS); 
 
@@ -874,15 +869,15 @@ int draw_stat_window(WINDOW *win) {
 		mvwvline(win, pos, 21, 0, 1);
 		mvwvline(win, pos, 26, 0, 1);
 
-		mvwprintw(win, pos, 17, "%4d", burnin_scripts[i].pass_count);
+		mvwprintw(win, pos, 17, "%4ld", burnin_scripts[i].pass_count);
 
 		if (burnin_scripts[i].fail_count > 0) {
 			wattron(win, COLOR_PAIR(1));
-			mvwprintw(win, pos, 22, "%4d", burnin_scripts[i].fail_count);
+			mvwprintw(win, pos, 22, "%4ld", burnin_scripts[i].fail_count);
 			wattroff(win, COLOR_PAIR(1));
 		}
 		else {
-			mvwprintw(win, pos, 22, "%4d", burnin_scripts[i].fail_count);
+			mvwprintw(win, pos, 22, "%4ld", burnin_scripts[i].fail_count);
 		}
 
 		sprintf(buf, "%%.%ds", string_width);
@@ -1119,9 +1114,9 @@ int dump_stats() {
 			burnin_scripts[i].last_msg);
 		fprintf(fp, "BURNIN_%d_RUNNING=\"%d\"\n", i, 
 			burnin_scripts[i].running);
-		fprintf(fp, "BURNIN_%d_PASS_QTY=\"%d\"\n", i, 
+		fprintf(fp, "BURNIN_%d_PASS_QTY=\"%ld\"\n", i,
 			burnin_scripts[i].pass_count);
-		fprintf(fp, "BURNIN_%d_FAIL_QTY=\"%d\"\n", i, 
+		fprintf(fp, "BURNIN_%d_FAIL_QTY=\"%ld\"\n", i,
 			burnin_scripts[i].fail_count);
 		total_failed = total_failed + burnin_scripts[i].fail_count;
 	}
@@ -1143,7 +1138,7 @@ int dump_log() {
 	running_time(curtime);
 	
 	dump_fp = fork_cmd(&pid, "Dumping log to USB device", 
-		"/etc/breakin/dumplog.sh"); 
+		PREFIX "/etc/breakin/dumplog.sh");
 
 	while (!finished && dump_fp != NULL) {
 
@@ -1196,7 +1191,7 @@ int handle_keypress() {
 			if (logdev_file != NULL) {
 				fclose(logdev_file);
 			}
-			execv("/etc/breakin/stop.sh", NULL);
+			execv(PREFIX "/etc/breakin/stop.sh", NULL);
 		}
 		else if (ch == ESCAPE) {
 			hide_panel(details_panel);
@@ -1263,14 +1258,11 @@ int update_stats() {
 int find_burnin_tests() {
 
 	DIR *burnin_dir;
-	struct dirent *dir_entry, *de;
+	struct dirent *dir_entry;
 	char filename[BUFSIZ];
 	int burnin_count = 0;
 	char *strptr, *str, *token;
 	int j;
-
-	dir_entry = (struct dirent *) malloc( 
-		offsetof(struct dirent, d_name) + 256);
 
 	burnin_dir = opendir(BURNIN_SCRIPT_PATH);
 	if(burnin_dir == NULL) {
@@ -1278,8 +1270,7 @@ int find_burnin_tests() {
 	}
 
 
-	while ((readdir_r(burnin_dir, dir_entry, &de) == 0) && de != NULL) {
-
+	while ((dir_entry = readdir(burnin_dir)) != NULL) {
 		int disable_test = 0;
 
 		for (j = 1, str = breakin_disable; ;j++, str = NULL) {
@@ -1300,10 +1291,9 @@ int find_burnin_tests() {
 		}
 
 		if (dir_entry->d_name[0] != '.') {
-
-			sprintf(filename, "%s/%s", BURNIN_SCRIPT_PATH, dir_entry->d_name);
-			sprintf(burnin_scripts[burnin_count].name, dir_entry->d_name);
-			sprintf(burnin_scripts[burnin_count].path, filename);
+			snprintf(filename, BUFSIZ, "%s/%s", BURNIN_SCRIPT_PATH, dir_entry->d_name);
+			strncpy(burnin_scripts[burnin_count].name, dir_entry->d_name, BUFSIZ);
+			strncpy(burnin_scripts[burnin_count].path, filename, BUFSIZ);
 			burnin_scripts[burnin_count].pass_count = 0;
 			burnin_scripts[burnin_count].fail_count = 0;
 			burnin_scripts[burnin_count].running = 0;
@@ -1316,25 +1306,16 @@ int find_burnin_tests() {
 		}
 	}
 	closedir(burnin_dir);
-	free(dir_entry);
 	burnin_script_count = burnin_count;
 	return burnin_count;
 }
 
-int run_burnin_tests() {
+int run_burnin_tests(void) {
+	int i;
 
-	DIR *burnin_dir;
-	struct dirent *dir_entry, *de;
-	char label[BUFSIZ];
-	int i = 0;
-
-	dir_entry = (struct dirent *) malloc( 
-		offsetof(struct dirent, d_name) + 256);
-
-	for (i = 0; i < burnin_script_count; i ++) {
+	for (i = 0; i < burnin_script_count; i++) {
 		if (burnin_scripts[i].running == 0) {
 			burnin_scripts[i].fp_stdout = fork_cmd(&burnin_scripts[i].pid, NULL, burnin_scripts[i].path); 
-
 			burnin_scripts[i].running = 1;
 		}
 	}
@@ -1497,7 +1478,7 @@ int update_logdev_write(FILE *fp) {
 	for (i = 0; i < burnin_script_count; i ++) {
 		fprintf(fp, "%s : ", cur_time);
 		fprintf(fp, "test:%s ", burnin_scripts[i].name);
-		fprintf(fp, " pass:%d fail:%d", burnin_scripts[i].pass_count, burnin_scripts[i].fail_count);
+		fprintf(fp, " pass:%ld fail:%ld", burnin_scripts[i].pass_count, burnin_scripts[i].fail_count);
 		fprintf(fp, " lastmsg:%s", 
 			burnin_scripts[i].last_msg);
 		fprintf(fp, "\n");
@@ -1664,7 +1645,7 @@ int main(int argc, char **argv) {
 
 	/* step 1: we setup the hardware */
 	hw_fp = fork_cmd(&pid, "Starting hardware setup", 
-		"/etc/breakin/hardware.sh"); 
+		PREFIX "/etc/breakin/hardware.sh");
 
 	hardware_finished = 0;	/* our hardware setup is not done */
 
@@ -1769,13 +1750,13 @@ int main(int argc, char **argv) {
 
 						ptr = buf;
 						ptr += 5;
-						snprintf(burnin_scripts[i].last_msg, 
-							sizeof(burnin_scripts[i].last_msg), ptr);
+						strncpy(burnin_scripts[i].last_msg, ptr,
+							sizeof(burnin_scripts[i].last_msg));
 					}
 					else {
-						snprintf(burnin_scripts[i].last_msg, 
-							sizeof(burnin_scripts[i].last_msg), buf);
-						sprintf(buf2, "%s - %s", burnin_scripts[i].name, buf);
+						strncpy(burnin_scripts[i].last_msg, buf,
+							sizeof(burnin_scripts[i].last_msg));
+						snprintf(buf2, sizeof(buf2), "%s - %s", burnin_scripts[i].name, buf);
 						log_error(buf2);
 					}
 				}

@@ -1,16 +1,13 @@
-CC=gcc
-CFLAGS= -DTHREADING
-LDFLAGS= -DTHREADING 
-LIBS=-lpanel -lncurses -lcurl
 VERSION?=0.0
-INSTALLPREFIX=SET_ME
 
+CC?=gcc
+DESTDIR?=/usr/local
+CPPFLAGS=-DTHREADING -DPRODUCT_VERSION=\"$(VERSION)\" -DPREFIX=\"$(DESTDIR)\" -DBURNIN_SCRIPT_PATH=\"$(DESTDIR)/etc/breakin/tests\"
+LDFLAGS=-DTHREADING
+LIBS=-lpanel -lncurses -ltinfo -lcurl
 OBJS=breakin.o util.o dmidecode.o bench_stream.o bench_disk.o
 
 all: breakin hpl_calc_n cryptpasswd hpl_calc_pq
-
-%.o: %.c
-	$(CC) -DPRODUCT_VERSION=\"${VERSION}\" ${CFLAGS} -c $<
 
 breakin: ${OBJS}
 	${CC} ${LDFLAGS} -pthread $^ -o $@  ${LIBS}
@@ -31,14 +28,12 @@ clean:
 	rm -f *.o breakin breakin.static hpl_calc_n cryptpasswd .buildfoo hpl_calc_pq
 
 install: breakin hpl_calc_n cryptpasswd
-
-	mkdir -p ${INSTALLPREFIX}/usr/local/bin
-	cp -p breakin ${INSTALLPREFIX}/usr/local/bin/breakin
-	cp -p hpl_calc_n ${INSTALLPREFIX}/usr/local/bin/hpl_calc_n
-	cp -p hpl_calc_pq ${INSTALLPREFIX}/usr/local/bin/hpl_calc_pq
-	cp -p cryptpasswd ${INSTALLPREFIX}/usr/local/bin/cryptpasswd
-
-	mkdir -p ${INSTALLPREFIX}/etc/breakin/tests
-
-	cp -av scripts/* ${INSTALLPREFIX}/etc/breakin
+	mkdir -p $(DESTDIR)/bin
+	cp -p breakin $(DESTDIR)/bin/breakin
+	cp -p hpl_calc_n $(DESTDIR)/bin/hpl_calc_n
+	cp -p hpl_calc_pq $(DESTDIR)/bin/hpl_calc_pq
+	cp -p cryptpasswd $(DESTDIR)/bin/cryptpasswd
+	mkdir -p $(DESTDIR)/etc/breakin/tests
+	cp -av scripts/* $(DESTDIR)/etc/breakin
+	sed -i -e 's;@DESTDIR@;$(DESTDIR);g' $(DESTDIR)/etc/breakin/startup.sh
 
