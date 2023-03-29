@@ -1,12 +1,14 @@
-#!/bin/ash
+#!/bin/sh
 
 trymount() {
 	DEV_NAME=$1
 	#source /tmp/vol_id.tmp # might use these variables some day
+	mkdir -p /var/snapshot
 	mount /dev/${DEV_NAME} /var/snapshot
 	if [ $? != 0 ]
 	then
 		echo "Mount error for found USB device."
+		rm -rf /var/snapshot
 		return 1
 	fi
 	echo "USB snapshot device found at ${DEV_NAME}."
@@ -34,6 +36,7 @@ trymount() {
 	sync
 
 	umount /var/snapshot
+	rm -rf /var/snapshot
 
 	echo "Data written to 'breakin.dmp', safe to remove USB device."
 	exit 0

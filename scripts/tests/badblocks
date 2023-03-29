@@ -1,6 +1,4 @@
-#!/bin/ash
-
-. /etc/library.sh
+#!/bin/sh
 
 # read in our hardware configs
 if [ -e /var/run/breakin.dat ]
@@ -22,7 +20,7 @@ while [ "${I}" -lt "${DISK_QTY}" ];
 do
 	DRIVE_NAME=`eval echo \\\$DISK_${I}_NAME`
 
-	/usr/bin/badblocks -b 4096 -v /dev/${DRIVE_NAME} > /tmp/badblocks.${DRIVE_NAME}.log 2>&1
+	/usr/sbin/badblocks -b 4096 -v /dev/${DRIVE_NAME} > /tmp/badblocks.${DRIVE_NAME}.log 2>&1
 	if [ "$?" != 0 ]
 	then
 		echo "Disk drive check failed on device ${DRIVE_NAME}"

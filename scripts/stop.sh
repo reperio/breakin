@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/sh
+killall -9 @DESTDIR@/bin/hpl
 sync
-umount /var/logdev
 echo "Breakin was stopped"

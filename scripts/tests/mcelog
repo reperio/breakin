@@ -1,26 +1,20 @@
-#!/bin/ash
+#!/bin/sh
 # read /dev/mcelog every 10 seconds 
 
-. /etc/library.sh
-
 FOUND_ERROR=0
+TS=`/usr/bin/date +%s`
+DATE=`expr ${TS} - 10`
+DATE=`/usr/bin/date -d "@${DATE}" +'%Y-%m-%d %H:%M:%S'`
 
-OUTPUT=`/usr/sbin/mcelog --dmi`
-RETVAL=$?
-if [ $RETVAL = 1 ]
+# This assumes running on Debian or some other distro that uses systemd
+#
+# The kernel will log events with 'mce:', the data captured by rasdaemon
+# appears to get logged to the journal with 'mce_record:'
+if /usr/bin/journalctl -q -a -S "${DATE}" -g '(mce: \[Hardware)|(mce_record:)' 2>/dev/null 1>&2
 then
-
-	msg "mcelog couldn't access mce, mem, or dmi data"
-	exit 255
-
-elif [ $RETVAL = 0 ]
-then
-	if [ -n "${OUTPUT}" ]
-	then
-		FOUND_ERROR=1
-		echo "${OUTPUT}"
-	fi
-
+	FOUND_ERROR=1
+	/usr/bin/journalctl -q -a -S "${DATE}" -g '(mce: \[Hardware)|(mce_record:)' 2>/dev/null
 fi
+
 sleep 10
 exit $FOUND_ERROR 

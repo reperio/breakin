@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/sh
 
 ARGS=""
 DESTDIR=@DESTDIR@

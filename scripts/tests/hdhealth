@@ -1,6 +1,5 @@
-#!/bin/ash
-
-. /etc/library.sh
+#!/bin/sh
+# XXX: needs smartmontools installed
 
 # read in our hardware configs
 if [ -e /var/run/breakin.dat ]
@@ -27,7 +26,7 @@ do
 	#TEMPS="${DRIVE_NAME}: `hddtemp -n -uC /dev/${DRIVE_NAME}`C ${TEMPS}"
 	# The temps may be readable with SMART value 194.
 
-	/usr/bin/smartctl -q silent -a /dev/${DRIVE_NAME} > /dev/null 2>&1
+	/usr/sbin/smartctl -q silent -a /dev/${DRIVE_NAME} > /dev/null 2>&1
 	ERRCODE=$?
 
 	if [ "${ERRCODE}" = 4 ]
