@@ -1,7 +1,6 @@
-#!/bin/ash
+#!/bin/sh
+# XXX: wants ipmitool to be installed
 # read breakin.dat every 2 seconds and blink the LED if everything is fine
-
-. /etc/library.sh
 
 # read in our hardware configs
 if [ -e /var/run/breakin.dat ]
@@ -11,12 +10,12 @@ fi
 
 if [ ${BURNIN_TOTAL_FAIL_QTY} -gt 0 ]
 then
-	ipmitool chassis identify force > /dev/null 2>&1
+	/usr/bin/ipmitool chassis identify force > /dev/null 2>&1
 	echo "Other tests have errors, turning on ID light and exiting."
 	exit 255
 fi
 
-ipmitool chassis identify 1 > /dev/null 2>&1
+/usr/bin/ipmitool chassis identify 1 > /dev/null 2>&1
 if [ $? != 0 ]; then
   echo 'No IPMI on this system.'
   exit 255

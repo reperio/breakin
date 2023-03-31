@@ -1,6 +1,4 @@
-#!/bin/ash
-
-. /etc/library.sh
+#!/bin/sh
 
 # read in our hardware configs
 if [ -e /var/run/breakin.dat ]

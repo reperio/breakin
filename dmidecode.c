@@ -11,6 +11,8 @@
 #include "util.h"
 #include "dmidecode.h"
 
+struct dmi_data_t dmi_data;
+
 struct dmi_header
 {
 	u8 type;

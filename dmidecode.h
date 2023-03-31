@@ -15,7 +15,7 @@ struct dmi_data_t {
 	char	board_product[50];
 	char	board_version[50];
 	char	board_serial[50];
-} dmi_data;
+};
 
 typedef unsigned char u8;
 typedef unsigned short u16;

@@ -1,6 +1,4 @@
-#!/bin/ash
-
-. /etc/library.sh
+#!/bin/sh
 
 # read in our hardware configs
 if [ -e /var/run/breakin.dat ]
@@ -8,73 +6,75 @@ then
 	. /var/run/breakin.dat
 fi
 
-BINARY="xhpl.amd"
-RUNNING_JOB=""
+# Generate the hpl config file
+cat > /tmp/HPL.dat <<EOF
+HPLinpack benchmark input file
+Innovative Computing Laboratory, University of Tennessee
+HPL.out      output file name (if any)
+6            device out (6=stdout,7=stderr,file)
+1            # of problems sizes (N)
+`@DESTDIR@/bin/hpl_calc_n ${MEM_TOTAL}`         Ns
+1            # of NBs
+128    	NBs
+0            PMAP process mapping (0=Row-,1=Column-major)
+1            # of process grids (P x Q)
+`@DESTDIR@/bin/hpl_calc_pq ${CPU_QTY}`
+16.0         threshold
+1            # of panel fact
+2            PFACTs (0=left, 1=Crout, 2=Right)
+1            # of recursive stopping criterium
+4            NBMINs (>= 1)
+1            # of panels in recursion
+2            NDIVs
+1            # of recursive panel fact.
+1            RFACTs (0=left, 1=Crout, 2=Right)
+1            # of broadcast
+1            BCASTs (0=1rg,1=1rM,2=2rg,3=2rM,4=Lng,5=LnM)
+1            # of lookahead depth
+1            DEPTHs (>=0)
+2            SWAP (0=bin-exch,1=long,2=mix)
+64           swapping threshold
+0            L1 in (0=transposed,1=no-transposed) form
+0            U  in (0=transposed,1=no-transposed) form
+1            Equilibration (0=no,1=yes)
+8            memory alignment in double (> 0)
+EOF
 
-echo "${CPU_MODEL}" | grep "Intel" > /dev/null 2>&1
-if [ "$?" = "0" ]
+export OMP_PROC_BIND=TRUE
+export OMP_PLACES=cores
+export OMP_NUM_THREADS=`/usr/bin/lscpu | grep 'per core' | awk '{print $4}'`
+export OMPI_MCA_plm_rsh_agent=/usr/bin/rsh
+export OMPI_MCA_btl_vader_single_copy_mechanism=none
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+if [ -x @DESTDIR@/bin/hpl ]
 then
-	BINARY="xhpl.intel"
-fi
-
-# the top template
-cat /usr/local/breakin/hpl/HPL-top.txt > /usr/local/breakin/hpl/HPL.dat
-
-# we first figure out our N based on the ammount of RAM we have
-N_SIZE=`/usr/local/bin/hpl_calc_n ${MEM_TOTAL}`
-
-#if [ ${BINARY} = "xhpl.amd" ]
-#then
-#	N_SIZE=$(($((N_SIZE / 3)) * 2))
-#fi
-
-echo "${N_SIZE}         Ns" >> /usr/local/breakin/hpl/HPL.dat
-
-cat /usr/local/breakin/hpl/HPL-middle.txt >> /usr/local/breakin/hpl/HPL.dat
-
-# use our little c program to calculate the best P&Q size based on qty cpus
-/usr/local/bin/hpl_calc_pq ${CPU_QTY} >> /usr/local/breakin/hpl/HPL.dat
-
-cat /usr/local/breakin/hpl/HPL-bottom.txt >> /usr/local/breakin/hpl/HPL.dat
-
-
-OMP_NUM_THREADS=1
-GOTO_NUM_THREADS=1
-export OMP_NUM_THREADS GOTO_NUM_THREADS
-
-if [ -e /usr/local/bin/xhpl.library ]
-then
-	. /usr/local/bin/xhpl.library
-	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HPL_LD_LIBRARY_PATH}
-	export LD_LIBRARY_PATH
-fi
-
-PATH=/bin:/usr/bin:/usr/local/bin
-export PATH
-
-cd /usr/local/breakin/hpl
-if [ -x /usr/local/bin/${BINARY} ]
-then
-	/usr/local/bootimage-openmpi/bin/orterun --allow-run-as-root -np ${CPU_QTY} -mca btl sm,self -stdin none /usr/local/bin/${BINARY} > /tmp/hpl.log 2>&1
+	cd /tmp
+	/usr/bin/mpirun --allow-run-as-root -np ${CPU_QTY} -mca btl vader,self -stdin none @DESTDIR@/bin/hpl > /tmp/hpl.log 2>&1
 else
-	echo "Binary for this host CPU variant is not available."
-	return 255
+	echo "Binary for this host is not available."
+	rm -f /tmp/HPL.dat
+	exit 255
 fi
 
 if [ "$?" -ne 0 ]
 then
-	cat /tmp/hpl.log > /errors/hpl.log
+	touch /var/log/breakin.error.log
+	cat /tmp/hpl.log >> /var/log/breakin.error.log
+	rm -f @DESTDIR@/bin/HPL.dat /tmp/hpl.log
+	sync
 	echo "test failed possible memory or cpu errors" 
 	exit 1
 else
 	GFLOPS=`grep ^WR /tmp/hpl.log | tail -1 | awk '{print $7}'`
 	echo "MSG: Passed (${GFLOPS} GFLOPS)" 
 	cp /tmp/hpl.log /tmp/hpl.log.previous
+	rm -f /tmp/HPL.dat
 	exit 0
 fi
-done
 
 sleep 1
-killall ${BINARY} > /dev/null 2>&1
+rm -f /tmp/HPL.dat
+killall -9 @DESTDIR@/bin/hpl > /dev/null 2>&1
 sleep 5
 
