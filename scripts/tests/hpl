@@ -50,7 +50,7 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 if [ -x @DESTDIR@/bin/hpl ]
 then
 	cd /tmp
-	/usr/bin/mpirun --allow-run-as-root -np ${CPU_QTY} -mca btl vader,self -stdin none @DESTDIR@/bin/hpl > /tmp/hpl.log 2>&1
+	/usr/bin/mpirun --allow-run-as-root -np ${CPU_QTY} --oversubscribe -mca btl vader,self -stdin none @DESTDIR@/bin/hpl > /tmp/hpl.log 2>&1
 else
 	echo "Binary for this host is not available."
 	rm -f /tmp/HPL.dat

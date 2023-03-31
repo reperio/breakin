@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ARGS=""
+ARGS="-b"
 DESTDIR=@DESTDIR@
 
 if [ "${_update_interval}" != "" ]
