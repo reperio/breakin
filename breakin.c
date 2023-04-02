@@ -506,17 +506,15 @@ int get_ipmi_sensors() {
 				}
 				/* value */
 				else if (i == 1) {
-					if (sscanf(chunk, "%d %*s", &value) >= 1) {
-						found_value = 1;
-					}
+					found_value = !!sscanf(chunk, "%d ", &value);
 				}
-				i ++;
+				i++;
 			}	
 			if (found_label && found_value) {
 				if (temp_qty < MAX_TEMPS) {
 					snprintf(temp_data[temp_qty].name, sizeof(temp_data[temp_qty].name), "%s", label);
 					temp_data[temp_qty].value = value;
-					temp_qty ++;
+					temp_qty++;
 				}
 			}
 		}
@@ -532,21 +530,20 @@ int get_ipmi_sensors() {
 				chunk = strsep(&string, "|");
 				/* label */
 				if (i == 0) {
-					snprintf(label, sizeof(label), "%s", trim(chunk));
+					snprintf(label, sizeof(label), "%s", trim(chunk) + 3);
 					found_label = 1;
 				}
 				/* value */
 				else if (i == 1) {
-					sscanf(chunk, "%d %*s", &value);	
-					found_value = 1;
+					found_value = !!sscanf(chunk, "%d ", &value);
 				}
-				i ++;
+				i++;
 			}	
 			if (found_label && found_value) {
-				if (temp_qty < MAX_FANS) {
+				if (fan_qty < MAX_FANS) {
 					snprintf(fan_data[fan_qty].name, sizeof(fan_data[fan_qty].name), "%s", label);
 					fan_data[fan_qty].value = value;
-					fan_qty ++;
+					fan_qty++;
 				}
 			}
 		}
@@ -1605,9 +1602,7 @@ int main(int argc, char **argv) {
 	}
 
 	find_burnin_tests();
-
 	get_ipmi_sensors(); 
-
 	setup_screen();			/* initalize the ncurses screen */
 
 	/* these functions do not need to be run multiple times */
