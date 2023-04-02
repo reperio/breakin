@@ -44,7 +44,15 @@ install: breakin hpl_calc_n cryptpasswd hpl
 	install -m 0750 cryptpasswd $(DESTDIR)/bin/cryptpasswd
 	install -m 0750 hpl $(DESTDIR)/bin/hpl
 	mkdir -p $(DESTDIR)/etc/breakin/tests
-	cp -av scripts/* $(DESTDIR)/etc/breakin
+	cp -av scripts/dumplog.sh $(DESTDIR)/etc/breakin
+	cp -av scripts/hardware.sh $(DESTDIR)/etc/breakin
+	cp -av scripts/ipmi.sh $(DESTDIR)/etc/breakin
+	cp -av scripts/startup.sh $(DESTDIR)/etc/breakin
+	cp -av scripts/stop.sh $(DESTDIR)/etc/breakin
+	cp -av scripts/tests/ecc $(DESTDIR)/etc/breakin/tests
+	cp -av scripts/tests/failid $(DESTDIR)/etc/breakin/tests
+	cp -av scripts/tests/hpl $(DESTDIR)/etc/breakin/tests
+	cp -av scripts/tests/mcelog $(DESTDIR)/etc/breakin/tests
 	sed -i -e 's;@DESTDIR@;$(DESTDIR);g' $(DESTDIR)/etc/breakin/startup.sh
 	sed -i -e 's;@DESTDIR@;$(DESTDIR);g' $(DESTDIR)/etc/breakin/stop.sh
 	sed -i -e 's;@DESTDIR@;$(DESTDIR);g' $(DESTDIR)/etc/breakin/tests/hpl
