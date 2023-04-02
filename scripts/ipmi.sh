@@ -8,10 +8,10 @@ then
 fi
 
 get_ipmi() {
-	ipmitool sdr type Temperature | cut -d"|" -f1,5 | sed s/Temperature// > /tmp/ipmi_temp.log.tmp 2> /dev/null
+	ipmitool sdr type Temperature 2>/dev/null | cut -d"|" -f1,5 | sed s/Temperature// > /tmp/ipmi_temp.log.tmp
 	mv /tmp/ipmi_temp.log.tmp /tmp/ipmi_temp.log
 
-	ipmitool sdr type Fan | cut -d"|" -f1,5 | sed s/Fan// > /tmp/ipmi_fan.log.tmp 2> /dev/null
+	ipmitool sdr type Fan 2>/dev/null | cut -d"|" -f1,5 | sed s/Fan// > /tmp/ipmi_fan.log.tmp
 	mv /tmp/ipmi_fan.log.tmp /tmp/ipmi_fan.log
 }
 

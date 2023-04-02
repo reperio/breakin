@@ -38,5 +38,5 @@ echo "Getting IPMI values"
 ${DESTDIR}/etc/breakin/ipmi.sh
 
 echo "Starting IPMI server process"
-${DESTDIR}/etc/breakin/ipmi.sh 30 &
+${DESTDIR}/etc/breakin/ipmi.sh 10 &
 exec ${DESTDIR}/bin/breakin ${ARGS}
