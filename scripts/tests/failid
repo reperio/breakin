@@ -15,7 +15,7 @@ then
 	exit 255
 fi
 
-/usr/bin/ipmitool chassis identify 1 > /dev/null 2>&1
+/usr/sbin/ipmitool chassis identify 1 > /dev/null 2>&1
 if [ $? != 0 ]; then
   echo 'No IPMI on this system.'
   exit 255
