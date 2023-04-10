@@ -3,7 +3,7 @@
 
 #define MAX_DIMMS 32
 #define MAX_CPUS 16
-#define MAX_TEMPS 30
+#define MAX_TEMPS 50
 #define MAX_FANS 30
 #define MAX_DISKS 24
 #define MAX_BURNIN_SCRIPTS 64
